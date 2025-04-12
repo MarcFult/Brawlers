@@ -8,8 +8,8 @@ const Game: React.FC = () => {
     const config = {
       type: Phaser.AUTO,
       parent: 'phaser-example',
-      width: 800,
-      height: 600,
+      width: 606,
+      height: 660,
       physics: {
         default: 'arcade',
         arcade: {

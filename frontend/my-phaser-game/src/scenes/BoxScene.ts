@@ -56,7 +56,7 @@ export default class BoxScene extends Phaser.Scene {
     this.shootKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // Initialize socket connection
-    this.socket = io("http://10.0.40.186:3000"); // Adresse des Servers
+    this.socket = io("http://10.0.40.186:3001"); // Adresse des Servers
 
     this.socket.on("connect", () => {
       console.log("Verbunden mit Server:", this.socket.id);

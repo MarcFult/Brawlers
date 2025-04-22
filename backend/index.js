@@ -1,38 +1,38 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
+const { Server } = require("socket.io");
+const http = require("http");
 
-const app = express();
-const server = http.createServer(app);
+const server = http.createServer();
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 });
 
 const players = {};
 
-io.on('connection', (socket) => {
-  console.log(`👤 Verbunden: ${socket.id}`);
+io.on("connection", (socket) => {
+  console.log(`🔌 Spieler verbunden: ${socket.id}`);
 
-  players[socket.id] = { x: 400, y: 300 };
+  socket.on("playerJoined", (data) => {
+    players[socket.id] = { id: socket.id, ...data };
+    socket.broadcast.emit("newPlayer", players[socket.id]);
+    socket.emit("currentPlayers", players);
+  });
 
-  socket.emit('currentPlayers', players);
-  socket.broadcast.emit('newPlayer', { id: socket.id, ...players[socket.id] });
-
-  socket.on('playerMovement', (movementData) => {
+  socket.on("playerMoved", (data) => {
     if (players[socket.id]) {
-      players[socket.id].x = movementData.x;
-      players[socket.id].y = movementData.y;
-      socket.broadcast.emit('playerMoved', { id: socket.id, ...movementData });
+      players[socket.id] = { ...players[socket.id], ...data };
+      socket.broadcast.emit("playerMoved", { id: socket.id, ...data });
     }
   });
 
-  socket.on('disconnect', () => {
-    console.log(`❌ Getrennt: ${socket.id}`);
+  socket.on("disconnect", () => {
     delete players[socket.id];
-    io.emit('playerDisconnected', socket.id);
+    socket.broadcast.emit("playerDisconnected", socket.id);
   });
 });
 
 server.listen(3001, () => {
-  console.log('✅ Socket.io Server läuft auf Port 3001');
+  console.log("✅ Socket.io Server läuft auf Port 3001");
 });

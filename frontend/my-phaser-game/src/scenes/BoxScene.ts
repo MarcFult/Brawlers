@@ -9,36 +9,37 @@ export default class BoxScene extends Phaser.Scene {
   private currentDirection: string = "down";
   private concentration: number = 100;
   private concentrationText!: Phaser.GameObjects.Text;
+
   private socket!: Socket;
-  private otherPlayers: { [id: string]: Phaser.Physics.Arcade.Sprite } = {};
+  private otherPlayers: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
 
   constructor() {
     super({ key: "BoxScene" });
   }
 
   preload() {
-    // Load any assets here if needed
-    this.load.image("char_down", 'src/assets/char_behind.png');
-    this.load.image("char_up", 'src/assets/char_front.png');
-    this.load.image("char_left", 'src/assets/char_left.png');
-    this.load.image("char_right", 'src/assets/char_right.png');
-    this.load.image("bullet", 'src/assets/test_bullet.png');
-    this.load.image("map", 'src/assets/roomSB.png');
+    this.load.image("char_down", 'src/assets/char_behind.png')
+    this.load.image("char_up", 'src/assets/char_front.png')
+    this.load.image("char_left", 'src/assets/char_left.png')
+    this.load.image("char_right", 'src/assets/char_right.png')
+    this.load.image("bullet", 'src/assets/test_bullet.png')
+    this.load.image("map", 'src/assets/roomSB.png')
   }
 
   create() {
-    // Create the background (map)
+    // Hintergrund
     this.add.image(0, 0, 'map').setOrigin(0, 0);
 
-    // Initialize the player's sprite
+    // Spieler
     this.box = this.physics.add.sprite(400, 300, "char_down");
     this.box.setBounce(0.2);
     this.box.setCollideWorldBounds(true);
 
-    // Create cursor keys for movement
-    this.cursors = this.input!.keyboard!.createCursorKeys();
+    // Steuerung
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.shootKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-    // Display concentration
+    // Konzentration
     this.concentrationText = this.add.text(16, 16, 'Konzentration: 100%', {
       fontSize: '20px',
       color: '#ffffff',
@@ -46,46 +47,53 @@ export default class BoxScene extends Phaser.Scene {
       padding: { x: 10, y: 5 }
     }).setScrollFactor(0);
 
-    // Initialize bullets group
+    // Bullets
     this.bullets = this.physics.add.group({
       classType: Phaser.Physics.Arcade.Image,
       runChildUpdate: true
     });
 
-    // Key for shooting
-    this.shootKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    // Socket.io Verbindung
+    this.socket = io("http://10.0.40.186:3001");
 
-    // Initialize socket connection
-    this.socket = io("http://10.0.40.186:3001"); // Adresse des Servers
+    // Eigener Beitritt
+    this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection });
 
-    this.socket.on("connect", () => {
-      console.log("Verbunden mit Server:", this.socket.id);
+    // Andere Spieler verwalten
+    this.socket.on("currentPlayers", (players: any) => {
+      for (const id in players) {
+        if (id !== this.socket.id) {
+          this.addOtherPlayer(players[id]);
+        }
+      }
     });
 
-    // Listen for other players' movements
-    this.socket.on("otherPlayerMove", (data) => {
-      this.updateOtherPlayerPosition(data.id, data.x, data.y, data.direction);
+    this.socket.on("newPlayer", (player: any) => {
+      this.addOtherPlayer(player);
     });
 
-    // Listen for new players
-    this.socket.on("newPlayer", (data) => {
-      this.createOtherPlayer(data.id, data.x, data.y);
+    this.socket.on("playerMoved", (data: any) => {
+      const other = this.otherPlayers.get(data.id);
+      if (other) {
+        other.setPosition(data.x, data.y);
+        other.setTexture(this.getTextureFromDirection(data.dir));
+      }
     });
 
-    // Listen for player disconnects
-    this.socket.on("playerDisconnect", (id) => {
-      this.removeOtherPlayer(id);
+    this.socket.on("playerDisconnected", (id: string) => {
+      const other = this.otherPlayers.get(id);
+      if (other) {
+        other.destroy();
+        this.otherPlayers.delete(id);
+      }
     });
   }
 
   shootBullet() {
     const bullet = this.bullets.get(this.box.x, this.box.y, "bullet") as Phaser.Physics.Arcade.Image;
-
     if (!bullet) return;
 
-    bullet.setActive(true);
-    bullet.setVisible(true);
-    bullet.setCollideWorldBounds(true);
+    bullet.setActive(true).setVisible(true).setCollideWorldBounds(true);
 
     const speed = 600;
     switch (this.currentDirection) {
@@ -104,17 +112,11 @@ export default class BoxScene extends Phaser.Scene {
     }
 
     this.loseConcentration(5);
-
-    // Bullet verschwindet nach 2 Sekunden
-    this.time.delayedCall(2000, () => {
-      bullet.destroy();
-    });
+    this.time.delayedCall(2000, () => bullet.destroy());
   }
 
   loseConcentration(amount: number) {
-    this.concentration -= amount;
-    if (this.concentration < 0) this.concentration = 0;
-
+    this.concentration = Math.max(0, this.concentration - amount);
     this.concentrationText.setText(`Konzentration: ${this.concentration}%`);
 
     if (this.concentration <= 0) {
@@ -129,80 +131,58 @@ export default class BoxScene extends Phaser.Scene {
   }
 
   update() {
-    // X-Bewegung
+    let moved = false;
+
     if (this.cursors.left.isDown) {
       this.box.setVelocityX(-160);
       this.box.setTexture('char_left');
       this.currentDirection = "left";
+      moved = true;
     } else if (this.cursors.right.isDown) {
       this.box.setVelocityX(160);
       this.box.setTexture('char_right');
       this.currentDirection = "right";
+      moved = true;
     } else {
       this.box.setVelocityX(0);
     }
 
-    // Y-Bewegung
     if (this.cursors.up.isDown) {
       this.box.setVelocityY(-160);
       this.box.setTexture('char_down');
       this.currentDirection = "up";
+      moved = true;
     } else if (this.cursors.down.isDown) {
       this.box.setVelocityY(160);
       this.box.setTexture('char_up');
       this.currentDirection = "down";
+      moved = true;
     } else {
       this.box.setVelocityY(0);
     }
 
-    // Send player position to server
-    this.socket.emit("playerMove", {
-      id: this.socket.id,
-      x: this.box.x,
-      y: this.box.y,
-      direction: this.currentDirection
-    });
-
-    // Schießen mit Leertaste
     if (Phaser.Input.Keyboard.JustDown(this.shootKey)) {
       this.shootBullet();
     }
-  }
 
-  // Create other player
-  createOtherPlayer(id: string, x: number, y: number) {
-    this.otherPlayers[id] = this.physics.add.sprite(x, y, "char_down");
-    this.otherPlayers[id].setCollideWorldBounds(true);
-  }
-
-  // Update other player's position
-  updateOtherPlayerPosition(id: string, x: number, y: number, direction: string) {
-    if (!this.otherPlayers[id]) return;
-
-    this.otherPlayers[id].setPosition(x, y);
-
-    // Set texture based on direction
-    switch (direction) {
-      case "up":
-        this.otherPlayers[id].setTexture("char_up");
-        break;
-      case "down":
-        this.otherPlayers[id].setTexture("char_down");
-        break;
-      case "left":
-        this.otherPlayers[id].setTexture("char_left");
-        break;
-      case "right":
-        this.otherPlayers[id].setTexture("char_right");
-        break;
+    if (moved) {
+      this.socket.emit("playerMoved", { x: this.box.x, y: this.box.y, dir: this.currentDirection });
     }
   }
 
-  // Remove other player
-  removeOtherPlayer(id: string) {
-    if (this.otherPlayers[id]) {
-      this.otherPlayers[id].destroy();
-      delete this.otherPlayers[id];
+  private addOtherPlayer(data: any) {
+    const sprite = this.physics.add.sprite(data.x, data.y, this.getTextureFromDirection(data.dir || "down"));
+    sprite.setTint(0x00ff00); // Grün = anderer Spieler
+    this.otherPlayers.set(data.id, sprite);
+  }
+
+  private getTextureFromDirection(dir: string): string {
+    switch (dir) {
+      case "up": return "char_down";
+      case "down": return "char_up";
+      case "left": return "char_left";
+      case "right": return "char_right";
+      default: return "char_down";
     }
   }
 }

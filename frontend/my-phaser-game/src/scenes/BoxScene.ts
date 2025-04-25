@@ -31,7 +31,7 @@ export default class BoxScene extends Phaser.Scene {
     this.add.image(0, 0, 'map').setOrigin(0, 0);
 
     // Spieler
-    this.box = this.physics.add.sprite(400, 300, "char_down");
+    this.box = this.physics.add.sprite(30, 30, "char_down");
     this.box.setBounce(0.2);
     this.box.setCollideWorldBounds(true);
 

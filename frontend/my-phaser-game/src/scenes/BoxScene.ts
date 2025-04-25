@@ -9,6 +9,7 @@ export default class BoxScene extends Phaser.Scene {
   private currentDirection: string = "down";
   private concentration: number = 100;
   private concentrationText!: Phaser.GameObjects.Text;
+  private isGameOver: boolean = false;
 
   private socket!: Socket;
   private otherPlayers: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
@@ -27,19 +28,15 @@ export default class BoxScene extends Phaser.Scene {
   }
 
   create() {
-    // Hintergrund
     this.add.image(0, 0, 'map').setOrigin(0, 0);
 
-    // Spieler
     this.box = this.physics.add.sprite(30, 30, "char_down");
     this.box.setBounce(0.2);
     this.box.setCollideWorldBounds(true);
 
-    // Steuerung
     this.cursors = this.input.keyboard.createCursorKeys();
     this.shootKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-    // Konzentration
     this.concentrationText = this.add.text(16, 16, 'Konzentration: 100%', {
       fontSize: '20px',
       color: '#ffffff',
@@ -47,19 +44,15 @@ export default class BoxScene extends Phaser.Scene {
       padding: { x: 10, y: 5 }
     }).setScrollFactor(0);
 
-    // Bullets
     this.bullets = this.physics.add.group({
       classType: Phaser.Physics.Arcade.Image,
       runChildUpdate: true
     });
 
-    // Socket.io Verbindung
     this.socket = io("http://10.0.40.186:3001");
 
-    // Eigener Beitritt
     this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection });
 
-    // Andere Spieler verwalten
     this.socket.on("currentPlayers", (players: any) => {
       for (const id in players) {
         if (id !== this.socket.id) {
@@ -87,31 +80,53 @@ export default class BoxScene extends Phaser.Scene {
         this.otherPlayers.delete(id);
       }
     });
+
+    this.socket.on("playerShot", (data: any) => {
+      const shooter = this.otherPlayers.get(data.id);
+      if (!shooter) return;
+
+      const bullet = this.physics.add.image(data.x, data.y, "bullet");
+      bullet.setActive(true).setVisible(true).setCollideWorldBounds(true);
+      bullet.setVelocity(data.velocity.x, data.velocity.y);
+      this.time.delayedCall(2000, () => bullet.destroy());
+    });
   }
 
   shootBullet() {
-    const bullet = this.bullets.get(this.box.x, this.box.y, "bullet") as Phaser.Physics.Arcade.Image;
+    if (this.isGameOver) return; // Tote Spieler dürfen nicht schießen
+
+    const bullet = this.physics.add.image(this.box.x, this.box.y, "bullet");
     if (!bullet) return;
 
     bullet.setActive(true).setVisible(true).setCollideWorldBounds(true);
 
     const speed = 600;
+    let velocity = { x: 0, y: 0 };
+
     switch (this.currentDirection) {
       case "up":
-        bullet.setVelocity(0, -speed);
+        velocity.y = -speed;
         break;
       case "down":
-        bullet.setVelocity(0, speed);
+        velocity.y = speed;
         break;
       case "left":
-        bullet.setVelocity(-speed, 0);
+        velocity.x = -speed;
         break;
       case "right":
-        bullet.setVelocity(speed, 0);
+        velocity.x = speed;
         break;
     }
 
+    bullet.setVelocity(velocity.x, velocity.y);
     this.loseConcentration(5);
+
+    this.socket.emit("playerShot", {
+      x: this.box.x,
+      y: this.box.y,
+      velocity: { x: velocity.x, y: velocity.y }
+    });
+
     this.time.delayedCall(2000, () => bullet.destroy());
   }
 
@@ -119,7 +134,8 @@ export default class BoxScene extends Phaser.Scene {
     this.concentration = Math.max(0, this.concentration - amount);
     this.concentrationText.setText(`Konzentration: ${this.concentration}%`);
 
-    if (this.concentration <= 0) {
+    if (this.concentration <= 0 && !this.isGameOver) {
+      this.socket.emit("playerDead"); // Server informieren
       this.handleGameOver();
     }
   }
@@ -127,10 +143,13 @@ export default class BoxScene extends Phaser.Scene {
   handleGameOver() {
     this.physics.pause();
     this.box.setTint(0xff0000);
+    this.isGameOver = true;
     this.concentrationText.setText('Konzentration: 0% - Du bist raus!');
   }
 
   update() {
+    if (this.isGameOver) return;
+
     let moved = false;
 
     if (this.cursors.left.isDown) {
@@ -172,7 +191,7 @@ export default class BoxScene extends Phaser.Scene {
 
   private addOtherPlayer(data: any) {
     const sprite = this.physics.add.sprite(data.x, data.y, this.getTextureFromDirection(data.dir || "down"));
-    sprite.setTint(0x00ff00); // Grün = anderer Spieler
+    sprite.setTint(0x00ff00);
     this.otherPlayers.set(data.id, sprite);
   }
 

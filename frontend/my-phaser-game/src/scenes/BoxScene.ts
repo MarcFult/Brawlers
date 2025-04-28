@@ -17,18 +17,21 @@ export default class BoxScene extends Phaser.Scene {
   constructor() {
     super({ key: "BoxScene" });
   }
-
   preload() {
     this.load.image("char_down", 'src/assets/char_behind.png')
     this.load.image("char_up", 'src/assets/char_front.png')
     this.load.image("char_left", 'src/assets/char_left.png')
     this.load.image("char_right", 'src/assets/char_right.png')
     this.load.image("bullet", 'src/assets/test_bullet.png')
-    this.load.image("map", 'src/assets/roomSB.png')
+    this.load.image("test_map", 'src/assets/roomSB.png')
+    this.load.image("first_map", 'src/assets/img.png')
   }
 
   create() {
-    this.add.image(0, 0, 'map').setOrigin(0, 0);
+    this.add.image(0, 0, 'first_map').setOrigin(0,0);
+
+    this.cameras.main.setBounds(0, 0, 1134, 1110);
+    this.physics.world.setBounds(0, 0, 1134, 1110);
 
     this.box = this.physics.add.sprite(30, 30, "char_down");
     this.box.setBounce(0.2);
@@ -93,29 +96,48 @@ export default class BoxScene extends Phaser.Scene {
   }
 
   shootBullet() {
-    if (this.isGameOver) return; // Tote Spieler dürfen nicht schießen
+    if (this.isGameOver) return; //tote dürfen nicht schießen
 
     const bullet = this.physics.add.image(this.box.x, this.box.y, "bullet");
     if (!bullet) return;
 
     bullet.setActive(true).setVisible(true).setCollideWorldBounds(true);
 
-    const speed = 600;
+    const baseSpeed = 600;
     let velocity = { x: 0, y: 0 };
 
-    switch (this.currentDirection) {
-      case "up":
-        velocity.y = -speed;
-        break;
-      case "down":
-        velocity.y = speed;
-        break;
-      case "left":
-        velocity.x = -speed;
-        break;
-      case "right":
-        velocity.x = speed;
-        break;
+    const up = this.cursors.up.isDown;
+    const down = this.cursors.down.isDown;
+    const left = this.cursors.left.isDown;
+    const right = this.cursors.right.isDown;
+
+    if (up && left) {
+      velocity.x = -baseSpeed / Math.sqrt(2);
+      velocity.y = -baseSpeed / Math.sqrt(2);
+    } else if (up && right) {
+      velocity.x = baseSpeed / Math.sqrt(2);
+      velocity.y = -baseSpeed / Math.sqrt(2);
+    } else if (down && left) {
+      velocity.x = -baseSpeed / Math.sqrt(2);
+      velocity.y = baseSpeed / Math.sqrt(2);
+    } else if (down && right) {
+      velocity.x = baseSpeed / Math.sqrt(2);
+      velocity.y = baseSpeed / Math.sqrt(2);
+    } else if (up) {
+      velocity.y = -baseSpeed;
+    } else if (down) {
+      velocity.y = baseSpeed;
+    } else if (left) {
+      velocity.x = -baseSpeed;
+    } else if (right) {
+      velocity.x = baseSpeed;
+    } else {
+      switch (this.currentDirection) {
+        case "up": velocity.y = -baseSpeed; break;
+        case "down": velocity.y = baseSpeed; break;
+        case "left": velocity.x = -baseSpeed; break;
+        case "right": velocity.x = baseSpeed; break;
+      }
     }
 
     bullet.setVelocity(velocity.x, velocity.y);
@@ -129,6 +151,8 @@ export default class BoxScene extends Phaser.Scene {
 
     this.time.delayedCall(2000, () => bullet.destroy());
   }
+
+
 
   loseConcentration(amount: number) {
     this.concentration = Math.max(0, this.concentration - amount);

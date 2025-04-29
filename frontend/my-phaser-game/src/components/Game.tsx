@@ -16,7 +16,6 @@ const Game: React.FC = () => {
         arcade: {
           gravity: { x: 0, y: 0 }, // Include both x and y properties
           debug: false
-
         }
       },
       scene: [BoxScene]
@@ -33,9 +32,6 @@ const Game: React.FC = () => {
   }, []);
 
   return <div id="phaser-example"
-
-
-
   />;
 };
 

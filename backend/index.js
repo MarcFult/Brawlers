@@ -17,10 +17,8 @@ io.on("connection", (socket) => {
   socket.on("playerJoined", (data) => {
     players[socket.id] = { id: socket.id, ...data, alive: true };
 
-    // Sende vorhandene Spieler an den neuen
     socket.emit("currentPlayers", players);
 
-    // Teile allen anderen mit, dass ein neuer Spieler da ist
     socket.broadcast.emit("newPlayer", players[socket.id]);
   });
 
@@ -49,10 +47,8 @@ io.on("connection", (socket) => {
     if (player) {
       player.alive = false;
 
-      // Nur an den gestorbenen Spieler selbst:
       socket.emit("youAreDead");
 
-      // Alle anderen über den Tod informieren
       socket.broadcast.emit("playerDied", { id: socket.id });
     }
   });
@@ -62,6 +58,13 @@ io.on("connection", (socket) => {
     delete players[socket.id];
     socket.broadcast.emit("playerDisconnected", socket.id);
   });
+
+  socket.on("playerHit", ({ shooterId, targetId }) => {
+    io.to(shooterId).emit("hitConfirmed", { targetId });
+
+    io.to(targetId).emit("playerDamaged", { damage: 25 });
+  });
+
 });
 
 server.listen(3001, () => {

@@ -13,6 +13,8 @@ export default class BoxScene extends Phaser.Scene {
 
   private socket!: Socket;
   private otherPlayers: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
+  private playerBullets!: Phaser.Physics.Arcade.Group;
+  private enemyBullets!:  Phaser.Physics.Arcade.Group;
 
   constructor() {
     super({ key: "BoxScene" });
@@ -24,7 +26,7 @@ export default class BoxScene extends Phaser.Scene {
     this.load.image("char_right", 'src/assets/char_right.png')
     this.load.image("bullet", 'src/assets/test_bullet.png')
     this.load.image("test_map", 'src/assets/roomSB.png')
-    this.load.image("first_map", 'src/assets/img.png')
+    this.load.image("first_map", 'src/assets/first_map.png')
   }
 
   create() {
@@ -88,17 +90,39 @@ export default class BoxScene extends Phaser.Scene {
       const shooter = this.otherPlayers.get(data.id);
       if (!shooter) return;
 
-      const bullet = this.physics.add.image(data.x, data.y, "bullet");
+      const bullet = this.enemyBullets.create(data.x, data.y, "bullet") as Phaser.Physics.Arcade.Image;
+      (bullet as any).shooterId = data.id;
+
       bullet.setActive(true).setVisible(true).setCollideWorldBounds(true);
       bullet.setVelocity(data.velocity.x, data.velocity.y);
       this.time.delayedCall(2000, () => bullet.destroy());
     });
+
+    this.playerBullets = this.physics.add.group({
+      classType: Phaser.Physics.Arcade.Image,
+      runChildUpdate: true
+    });
+
+    this.enemyBullets = this.physics.add.group({
+      classType: Phaser.Physics.Arcade.Image,
+      runChildUpdate: true
+    });
+
+    this.physics.add.overlap(this.box, this.enemyBullets, this.handlePlayerHit, undefined, this);
+
+
+    this.socket.on("hitConfirmed", (data: any) => {
+      if (data.targetId === this.socket.id) {
+        this.loseConcentration(25);
+      }
+    });
+
   }
 
   shootBullet() {
     if (this.isGameOver) return; //tote dürfen nicht schießen
 
-    const bullet = this.physics.add.image(this.box.x, this.box.y, "bullet");
+    const bullet = this.playerBullets.create(this.box.x, this.box.y, "bullet") as Phaser.Physics.Arcade.Image;
     if (!bullet) return;
 
     bullet.setActive(true).setVisible(true).setCollideWorldBounds(true);
@@ -141,7 +165,6 @@ export default class BoxScene extends Phaser.Scene {
     }
 
     bullet.setVelocity(velocity.x, velocity.y);
-    this.loseConcentration(5);
 
     this.socket.emit("playerShot", {
       x: this.box.x,
@@ -165,7 +188,7 @@ export default class BoxScene extends Phaser.Scene {
   }
 
   handleGameOver() {
-    this.physics.pause();
+    this.box.setActive(false).setVisible(true);
     this.box.setTint(0xff0000);
     this.isGameOver = true;
     this.concentrationText.setText('Konzentration: 0% - Du bist raus!');
@@ -228,4 +251,20 @@ export default class BoxScene extends Phaser.Scene {
       default: return "char_down";
     }
   }
+
+
+
+  private handlePlayerHit(player: Phaser.GameObjects.GameObject, bullet: Phaser.GameObjects.GameObject) {
+    bullet.destroy();
+
+    this.loseConcentration(25);
+
+    this.tweens.add({
+      targets: this.box,
+      alpha: 0.5,
+      duration: 100,
+      yoyo: true
+    });
+  }
+
 }

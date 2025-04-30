@@ -39,4 +39,17 @@ public class UserService {
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
     }
+
+
+    public boolean validateLogin(String username, String password) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
+
+        if (userOpt.isEmpty()) {
+            return false;
+        }
+
+        User user = userOpt.get();
+        return user.getPassword().equals(password);  // WARNING: plain-text comparison!
+    }
+
 }

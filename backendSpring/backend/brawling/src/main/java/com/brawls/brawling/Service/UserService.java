@@ -1,5 +1,6 @@
 package com.brawls.brawling.Service;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.brawls.brawling.models.User;
 import com.brawls.brawling.repository.UserRepository;
@@ -11,15 +12,14 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    // Constructor injection (no need for @Autowired here)
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // Method to register a user
     public User registerUser(User user) {
-        // Check if the username or email already exists
         if (userRepository.findByUsername(user.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username already exists.");
         }
@@ -27,29 +27,28 @@ public class UserService {
             throw new IllegalArgumentException("Email already exists.");
         }
 
-        // No password encoding, just save the user as it is
+        // Encode password before saving
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
     public List<User> getAllUsers() {
-        return userRepository.findAll();  // Returns all users
+        return userRepository.findAll();
     }
 
-    // Method to find a user by username
     public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
+        return userRepository.findByUsername(username);  // Ensure this method is working as expected
     }
 
 
     public boolean validateLogin(String username, String password) {
         Optional<User> userOpt = userRepository.findByUsername(username);
-
         if (userOpt.isEmpty()) {
             return false;
         }
 
         User user = userOpt.get();
-        return user.getPassword().equals(password);  // WARNING: plain-text comparison!
+        // Use BCrypt to check password match
+        return passwordEncoder.matches(password, user.getPassword());
     }
-
 }

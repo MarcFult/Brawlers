@@ -66,8 +66,8 @@ export default class BoxScene extends Phaser.Scene {
       runChildUpdate: true
     });
 
-    //this.socket = io("http://10.0.40.186:3001");
-    this.socket = io("http://localhost:3001");
+    this.socket = io("http://10.0.40.186:3001");
+    //this.socket = io("http://localhost:3001");
 
 
     this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection, map: this.selectedMap });
@@ -162,7 +162,7 @@ export default class BoxScene extends Phaser.Scene {
 
     this.socket.on("updateKills", (data: any) => {
       this.kills = data.kills;
-      this.killText.setText(`Kills: ${this.kills}`);
+      this.killText.setText(`${this.kills}`);
     });
 
     this.concentrationSprite = this.add.image(470, 100, "con_100").setScrollFactor(0).setScale(0.5);

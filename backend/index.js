@@ -15,10 +15,11 @@ io.on("connection", (socket) => {
   console.log(`Spieler verbunden: ${socket.id}`);
 
   socket.on("playerJoined", (data) => {
-    players[socket.id] = { id: socket.id, ...data, alive: true };
+    players[socket.id] = { id: socket.id, ...data, alive: true , kills : 0};
+
+    console.log(`${socket.id} joined on map: ${data.map}`);
 
     socket.emit("currentPlayers", players);
-
     socket.broadcast.emit("newPlayer", players[socket.id]);
   });
 
@@ -47,8 +48,18 @@ io.on("connection", (socket) => {
     if (player) {
       player.alive = false;
 
-      socket.emit("youAreDead");
+      // Wer hat ihn getötet?
+      const lastShooterId = player.lastHitBy;
+      if (lastShooterId && players[lastShooterId]) {
+        players[lastShooterId].kills += 1;
 
+        // Dem Schützen seine neuen Kills mitteilen
+        io.to(lastShooterId).emit("updateKills", {
+          kills: players[lastShooterId].kills
+        });
+      }
+
+      socket.emit("youAreDead");
       socket.broadcast.emit("playerDied", { id: socket.id });
     }
   });
@@ -60,8 +71,15 @@ io.on("connection", (socket) => {
   });
 
   socket.on("playerHit", ({ shooterId, targetId }) => {
-    io.to(shooterId).emit("hitConfirmed", { targetId });
+    //kill counter stuff
+    const target = players[targetId];
+    if (target) {
+      target.lastHitBy = shooterId; // Letzter Schütze merken
+    }
+    io.emit("playerWasHit", { targetId });
 
+    io.to(shooterId).emit("hitConfirmed", { targetId });
+    io.emit("playerWasHit", { targetId });
     io.to(targetId).emit("playerDamaged", { damage: 25 });
   });
 

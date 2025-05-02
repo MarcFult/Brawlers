@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import Phaser from 'phaser';
 import BoxScene from '../scenes/BoxScene';
+import MapSelectScene from "../scenes/MapSelectScene.ts";
 
 
 const Game: React.FC = () => {
@@ -18,7 +19,7 @@ const Game: React.FC = () => {
           debug: false
         }
       },
-      scene: [BoxScene]
+      scene: [MapSelectScene, BoxScene]
     };
 
     const game = new Phaser.Game(config);

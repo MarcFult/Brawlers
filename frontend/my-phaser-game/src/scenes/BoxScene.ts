@@ -15,6 +15,7 @@ export default class BoxScene extends Phaser.Scene {
   private killText!: Phaser.GameObjects.Text;
   private killSprite!: Phaser.GameObjects.Image;
   private selectedMap: string = 'first_map';
+  private selectedSkin: string = 'char1';
 
   private socket!: Socket;
   private otherPlayers: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
@@ -27,14 +28,10 @@ export default class BoxScene extends Phaser.Scene {
 
   init(data: any) {
     this.selectedMap = data.selectedMap || 'first_map';
+    this.selectedSkin = data.selectedSkin || 'char1'; // fallback
   }
 
-
   preload() {
-    this.load.image("char_down", 'src/assets/char_behind.png')
-    this.load.image("char_up", 'src/assets/char_front.png')
-    this.load.image("char_left", 'src/assets/char_left.png')
-    this.load.image("char_right", 'src/assets/char_right.png')
     this.load.image("bullet", 'src/assets/test_bullet.png')
     this.load.image("test_map", 'src/assets/roomSB.png')
     this.load.image("first_map", 'src/assets/first_map.png')
@@ -45,6 +42,16 @@ export default class BoxScene extends Phaser.Scene {
     this.load.image("con_75", "src/assets/con_75.png");
     this.load.image("con_100", "src/assets/con_100.png");
     this.load.image("kill_buddy", "src/assets/char_kill.png")
+
+    //Skins
+    const skins = ["char1", "ralph"];
+
+    for (const skin of skins) {
+      this.load.image(`${skin}_front`, `src/assets/char/${skin}_front.png`);
+      this.load.image(`${skin}_back`, `src/assets/char/${skin}_back.png`);
+      this.load.image(`${skin}_left`, `src/assets/char/${skin}_left.png`);
+      this.load.image(`${skin}_right`, `src/assets/char/${skin}_right.png`);
+    }
   }
 
   create() {
@@ -53,9 +60,11 @@ export default class BoxScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, 1134, 1110);
     this.physics.world.setBounds(53, 160, 1022, 900);
 
-    this.box = this.physics.add.sprite(30, 30, "char_down");
+    this.box = this.physics.add.sprite(30, 30, `${this.selectedSkin}_front`);
     this.box.setBounce(0.2);
     this.box.setCollideWorldBounds(true);
+
+
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.shootKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -70,12 +79,12 @@ export default class BoxScene extends Phaser.Scene {
     this.socket = io("http://localhost:3001");
 
 
-    this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection, map: this.selectedMap });
+    this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection, map: this.selectedMap , skin: this.selectedSkin});
 
     this.socket.on("currentPlayers", (players: any) => {
       for (const id in players) {
         if (id !== this.socket.id) {
-          this.addOtherPlayer(players[id]);
+          this.addOtherPlayer({ ...players[id], skin: players[id].skin || "char1" }); //idk
         }
       }
     });
@@ -162,10 +171,35 @@ export default class BoxScene extends Phaser.Scene {
 
     this.socket.on("updateKills", (data: any) => {
       this.kills = data.kills;
-      this.killText.setText(`Kills: ${this.kills}`);
+      this.killText.setText(`${this.kills}`);
     });
 
     this.concentrationSprite = this.add.image(470, 100, "con_100").setScrollFactor(0).setScale(0.5);
+
+    if (this.selectedMap === "second_map") {
+      const tableBorders = this.physics.add.staticGroup();
+
+      tableBorders.create(570, 497, null)
+          .setDisplaySize(576, 90)
+          .refreshBody()
+          .setVisible();
+
+      tableBorders.create(570, 702, null)
+          .setDisplaySize(576, 90)
+          .refreshBody()
+          .setVisible();
+
+      tableBorders.create(570, 905, null)
+          .setDisplaySize(576, 90)
+          .refreshBody()
+          .setVisible();
+
+      // Spieler kann nicht durch
+      this.physics.add.collider(this.box, tableBorders);
+
+      this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());
+      this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
+    }
 
   }
 
@@ -253,12 +287,12 @@ export default class BoxScene extends Phaser.Scene {
 
     if (this.cursors.left.isDown) {
       this.box.setVelocityX(-250);
-      this.box.setTexture('char_left');
+      this.box.setTexture(`${this.selectedSkin}_left`);
       this.currentDirection = "left";
       moved = true;
     } else if (this.cursors.right.isDown) {
       this.box.setVelocityX(250);
-      this.box.setTexture('char_right');
+      this.box.setTexture(`${this.selectedSkin}_right`);
       this.currentDirection = "right";
       moved = true;
     } else {
@@ -267,12 +301,12 @@ export default class BoxScene extends Phaser.Scene {
 
     if (this.cursors.up.isDown) {
       this.box.setVelocityY(-250);
-      this.box.setTexture('char_down');
+      this.box.setTexture(`${this.selectedSkin}_back`);
       this.currentDirection = "up";
       moved = true;
     } else if (this.cursors.down.isDown) {
       this.box.setVelocityY(250);
-      this.box.setTexture('char_up');
+      this.box.setTexture(`${this.selectedSkin}_front`);
       this.currentDirection = "down";
       moved = true;
     } else {
@@ -289,29 +323,20 @@ export default class BoxScene extends Phaser.Scene {
   }
 
   private addOtherPlayer(data: any) {
-    const sprite = this.physics.add.sprite(data.x, data.y, this.getTextureFromDirection(data.dir || "down"));
-    sprite.setTint(0x00ff00);
+    const sprite = this.physics.add.sprite(data.x, data.y, `${data.skin}_${data.dir}`);
     this.otherPlayers.set(data.id, sprite);
   }
 
   private getTextureFromDirection(dir: string): string {
-    switch (dir) {
-      case "up": return "char_down";
-      case "down": return "char_up";
-      case "left": return "char_left";
-      case "right": return "char_right";
-      default: return "char_down";
-    }
+    return `${this.selectedSkin}_${dir}`;
   }
-
-
 
   private handlePlayerHit(player: Phaser.GameObjects.GameObject, bullet: Phaser.GameObjects.GameObject) {
     bullet.destroy();
 
     this.loseConcentration(25);
 
-    // Schütze informieren, dass er getroffen hat
+    // Schütze informieren das er getroffen hat
     const shooterId = (bullet as any).shooterId;
     if (shooterId && shooterId !== this.socket.id) {
       this.socket.emit("playerHit", { shooterId, targetId: this.socket.id });

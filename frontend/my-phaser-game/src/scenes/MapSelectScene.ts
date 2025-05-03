@@ -17,11 +17,11 @@ export default class MapSelectScene extends Phaser.Scene {
         const map2 = this.add.image(500, 200, "preview2").setInteractive().setScale(0.3);
 
         map1.on("pointerdown", () => {
-            this.scene.start("BoxScene", { selectedMap: "first_map" });
+            this.scene.start("SkinSelectScene", { selectedMap: "first_map" });
         });
 
         map2.on("pointerdown", () => {
-            this.scene.start("BoxScene", { selectedMap: "second_map" });
+            this.scene.start("SkinSelectScene", { selectedMap: "second_map" });
         });
     }
 }

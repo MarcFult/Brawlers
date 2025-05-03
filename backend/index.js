@@ -17,7 +17,7 @@ io.on("connection", (socket) => {
   socket.on("playerJoined", (data) => {
     players[socket.id] = { id: socket.id, ...data, alive: true , kills : 0};
 
-    console.log(`${socket.id} joined on map: ${data.map}`);
+    console.log(`${socket.id} joined on map: ${data.map} with skin: ${data.skin}`);
 
     socket.emit("currentPlayers", players);
     socket.broadcast.emit("newPlayer", players[socket.id]);

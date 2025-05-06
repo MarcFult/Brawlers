@@ -44,7 +44,7 @@ export default class BoxScene extends Phaser.Scene {
     this.load.image("kill_buddy", "src/assets/char_kill.png")
 
     //Skins
-    const skins = ["char1", "ralph"];
+    const skins = ["char1", "ralph", "pepe", "Peter_H", "caretaker"];
 
     for (const skin of skins) {
       this.load.image(`${skin}_front`, `src/assets/char/${skin}_front.png`);
@@ -65,7 +65,6 @@ export default class BoxScene extends Phaser.Scene {
     this.box.setCollideWorldBounds(true);
 
 
-
     this.cursors = this.input.keyboard.createCursorKeys();
     this.shootKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
@@ -75,8 +74,8 @@ export default class BoxScene extends Phaser.Scene {
       runChildUpdate: true
     });
 
-    //this.socket = io("http://10.0.40.186:3001");
-    this.socket = io("http://localhost:3001");
+    this.socket = io("http://10.0.40.186:3001");
+    //this.socket = io("http://localhost:3001");
 
 
     this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection, map: this.selectedMap , skin: this.selectedSkin});
@@ -97,9 +96,11 @@ export default class BoxScene extends Phaser.Scene {
       const other = this.otherPlayers.get(data.id);
       if (other) {
         other.setPosition(data.x, data.y);
-        other.setTexture(this.getTextureFromDirection(data.dir));
+        const skin = data.skin || "char1";
+        other.setTexture(this.getTextureFromDirection(data.dir, data.skin));
       }
     });
+
 
     this.socket.on("playerDisconnected", (id: string) => {
       const other = this.otherPlayers.get(id);
@@ -302,12 +303,12 @@ export default class BoxScene extends Phaser.Scene {
     if (this.cursors.up.isDown) {
       this.box.setVelocityY(-250);
       this.box.setTexture(`${this.selectedSkin}_back`);
-      this.currentDirection = "up";
+      this.currentDirection = "back"; //das war mal up
       moved = true;
     } else if (this.cursors.down.isDown) {
       this.box.setVelocityY(250);
       this.box.setTexture(`${this.selectedSkin}_front`);
-      this.currentDirection = "down";
+      this.currentDirection = "front"; //das war mal down
       moved = true;
     } else {
       this.box.setVelocityY(0);
@@ -318,18 +319,28 @@ export default class BoxScene extends Phaser.Scene {
     }
 
     if (moved) {
-      this.socket.emit("playerMoved", { x: this.box.x, y: this.box.y, dir: this.currentDirection });
+      this.socket.emit("playerMoved", {
+        x: this.box.x,
+        y: this.box.y,
+        dir: this.currentDirection,
+        skin: this.selectedSkin
+      });
     }
+
   }
 
   private addOtherPlayer(data: any) {
-    const sprite = this.physics.add.sprite(data.x, data.y, `${data.skin}_${data.dir}`);
+
+    const texture = this.getTextureFromDirection(data.dir, data.skin);
+    const sprite = this.physics.add.sprite(data.x, data.y, texture);
+
     this.otherPlayers.set(data.id, sprite);
   }
 
-  private getTextureFromDirection(dir: string): string {
-    return `${this.selectedSkin}_${dir}`;
+  private getTextureFromDirection(dir: string, skin: string): string {
+    return `${skin}_${dir}`;
   }
+
 
   private handlePlayerHit(player: Phaser.GameObjects.GameObject, bullet: Phaser.GameObjects.GameObject) {
     bullet.destroy();

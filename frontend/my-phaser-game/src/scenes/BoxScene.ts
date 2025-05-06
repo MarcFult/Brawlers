@@ -252,8 +252,8 @@ export default class BoxScene extends Phaser.Scene {
       velocity.x = baseSpeed;
     } else {
       switch (this.currentDirection) {
-        case "up": velocity.y = -baseSpeed; break;
-        case "down": velocity.y = baseSpeed; break;
+        case "back": velocity.y = -baseSpeed; break;
+        case "front": velocity.y = baseSpeed; break;
         case "left": velocity.x = -baseSpeed; break;
         case "right": velocity.x = baseSpeed; break;
       }

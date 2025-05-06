@@ -16,6 +16,8 @@ export default class BoxScene extends Phaser.Scene {
   private killSprite!: Phaser.GameObjects.Image;
   private selectedMap: string = 'first_map';
   private selectedSkin: string = 'char1';
+  private nameText!: Phaser.GameObjects.Text;
+
 
   private socket!: Socket;
   private otherPlayers: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
@@ -202,6 +204,14 @@ export default class BoxScene extends Phaser.Scene {
       this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
     }
 
+    this.nameText = this.add.text(this.box.x, this.box.y - 60, 'YOU', {
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      padding: { x: 4, y: 2 }
+    }).setOrigin(0.5);
+
+
   }
 
   shootBullet() {
@@ -326,6 +336,8 @@ export default class BoxScene extends Phaser.Scene {
         skin: this.selectedSkin
       });
     }
+
+    this.nameText.setPosition(this.box.x, this.box.y -60);
 
   }
 

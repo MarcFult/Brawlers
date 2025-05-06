@@ -28,7 +28,7 @@ io.on("connection", (socket) => {
     if (!player || !player.alive) return;
 
     players[socket.id] = { ...player, ...data };
-    socket.broadcast.emit("playerMoved", { id: socket.id, ...data });
+    socket.broadcast.emit("playerMoved", { id: socket.id, ...data,  skin: player.skin });
   });
 
   socket.on("playerShot", (data) => {

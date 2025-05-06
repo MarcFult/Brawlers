@@ -1,5 +1,10 @@
 package com.brawls.brawling.models;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import com.brawls.brawling.models.cometics.CosmeticItem;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,6 +28,10 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    //kills
-    //array of game objects
+    @ManyToMany
+    @JoinTable(name = "user_cosmetics", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "cosmetic_id"))
+    private Set<CosmeticItem> ownedCosmetics = new HashSet<>();
+
+    // kills
+    // array of game objects
 }

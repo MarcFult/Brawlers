@@ -3,7 +3,10 @@ package com.brawls.brawling.Service;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.brawls.brawling.models.User;
+import com.brawls.brawling.models.cometics.CosmeticItem;
 import com.brawls.brawling.repository.UserRepository;
+
+import jakarta.transaction.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,9 +40,8 @@ public class UserService {
     }
 
     public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);  // Ensure this method is working as expected
+        return userRepository.findByUsername(username); // Ensure this method is working as expected
     }
-
 
     public boolean validateLogin(String username, String password) {
         Optional<User> userOpt = userRepository.findByUsername(username);
@@ -51,4 +53,5 @@ public class UserService {
         // Use BCrypt to check password match
         return passwordEncoder.matches(password, user.getPassword());
     }
+
 }

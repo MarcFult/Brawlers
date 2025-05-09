@@ -48,21 +48,23 @@ io.on("connection", (socket) => {
     if (player) {
       player.alive = false;
 
-      // Wer hat ihn getötet?
       const lastShooterId = player.lastHitBy;
       if (lastShooterId && players[lastShooterId]) {
         players[lastShooterId].kills += 1;
 
-        // Dem Schützen seine neuen Kills mitteilen
         io.to(lastShooterId).emit("updateKills", {
           kills: players[lastShooterId].kills
         });
       }
 
       socket.emit("youAreDead");
-      socket.broadcast.emit("playerDied", { id: socket.id });
+      socket.broadcast.emit("playerDied", {
+        id: socket.id,
+        angle: 90 // Gegner sehen ihn gedreht
+      });
     }
   });
+
 
   socket.on("disconnect", () => {
     console.log(`Spieler getrennt: ${socket.id}`);
@@ -75,12 +77,13 @@ io.on("connection", (socket) => {
     const target = players[targetId];
     if (target) {
       target.lastHitBy = shooterId; // Letzter Schütze merken
-    }
+
     io.emit("playerWasHit", { targetId });
 
     io.to(shooterId).emit("hitConfirmed", { targetId });
     io.emit("playerWasHit", { targetId });
     io.to(targetId).emit("playerDamaged", { damage: 25 });
+    }
   });
 
 });

@@ -6,7 +6,7 @@ export default class BoxScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private bullets: Phaser.Physics.Arcade.Group;
   private shootKey: any;
-  private currentDirection: string = "down";
+  private currentDirection: string = "front";
   private concentration: number = 100;
   private concentrationText!: Phaser.GameObjects.Text;
   private concentrationSprite!: Phaser.GameObjects.Image;
@@ -17,7 +17,8 @@ export default class BoxScene extends Phaser.Scene {
   private selectedMap: string = 'first_map';
   private selectedSkin: string = 'char1';
   private nameText!: Phaser.GameObjects.Text;
-
+  private otherPlayersGroup!: Phaser.Physics.Arcade.Group;
+  private healZone! : Phaser.GameObjects.Image;
 
   private socket!: Socket;
   private otherPlayers: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
@@ -66,10 +67,8 @@ export default class BoxScene extends Phaser.Scene {
     this.box.setBounce(0.2);
     this.box.setCollideWorldBounds(true);
 
-
     this.cursors = this.input.keyboard.createCursorKeys();
     this.shootKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-
 
     this.bullets = this.physics.add.group({
       classType: Phaser.Physics.Arcade.Image,
@@ -77,8 +76,7 @@ export default class BoxScene extends Phaser.Scene {
     });
 
     this.socket = io("http://10.0.40.186:3001");
-    //this.socket = io("http://localhost:3001");
-
+    //this.socket = io("http://localhost:3001"); //Wenn ihr local seit das oben kommentieren und das untere auskommenteiren
 
     this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection, map: this.selectedMap , skin: this.selectedSkin});
 
@@ -102,7 +100,6 @@ export default class BoxScene extends Phaser.Scene {
         other.setTexture(this.getTextureFromDirection(data.dir, data.skin));
       }
     });
-
 
     this.socket.on("playerDisconnected", (id: string) => {
       const other = this.otherPlayers.get(id);
@@ -136,7 +133,6 @@ export default class BoxScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.box, this.enemyBullets, this.handlePlayerHit, undefined, this);
 
-
     this.socket.on("hitConfirmed", (data: any) => {
       if (data.targetId === this.socket.id) {
         this.loseConcentration(25);
@@ -146,10 +142,12 @@ export default class BoxScene extends Phaser.Scene {
     this.socket.on("playerDied", (data: any) => {
       const deadPlayer = this.otherPlayers.get(data.id);
       if (deadPlayer) {
-        deadPlayer.setTint(0xff0000); // rot einfärben
-        deadPlayer.setActive(false).setVisible(true); // optional: nicht mehr beweglich
+        deadPlayer.setTint(0xff0000); // rot einfärben als tot
+        deadPlayer.setActive(false).setVisible(true); // optional: nicht mehr beweglich sonst funny
+        deadPlayer.setAngle(data.angle || 0);
       }
     });
+
     this.socket.on("playerWasHit", (data: any) => {
 
       const hitPlayer = this.otherPlayers.get(data.targetId);
@@ -174,7 +172,7 @@ export default class BoxScene extends Phaser.Scene {
 
     this.socket.on("updateKills", (data: any) => {
       this.kills = data.kills;
-      this.killText.setText(`${this.kills}`);
+      this.killText.setText(`${this.kills - 1 }`); // TODO fix this pls
     });
 
     this.concentrationSprite = this.add.image(470, 100, "con_100").setScrollFactor(0).setScale(0.5);
@@ -211,6 +209,11 @@ export default class BoxScene extends Phaser.Scene {
       padding: { x: 4, y: 2 }
     }).setOrigin(0.5);
 
+    this.otherPlayersGroup = this.physics.add.group();
+
+    this.physics.add.collider(this.box, this.otherPlayersGroup);
+
+    this.healZone = this.physics.add.staticImage(1012, 243, "healZone").setVisible(false);
 
   }
 
@@ -252,8 +255,8 @@ export default class BoxScene extends Phaser.Scene {
       velocity.x = baseSpeed;
     } else {
       switch (this.currentDirection) {
-        case "up": velocity.y = -baseSpeed; break;
-        case "down": velocity.y = baseSpeed; break;
+        case "back": velocity.y = -baseSpeed; break;
+        case "front": velocity.y = baseSpeed; break;
         case "left": velocity.x = -baseSpeed; break;
         case "right": velocity.x = baseSpeed; break;
       }
@@ -282,13 +285,14 @@ export default class BoxScene extends Phaser.Scene {
     }
   }
 
-
   //KOOOOOOOKS!!!!!!!!!!!
 
   handleGameOver() {
     this.box.setActive(false).setVisible(true);
     this.box.setTint(0xff0000);
+    this.box.setAngle(90);
     this.isGameOver = true;
+    this.socket.emit("playerDead", { angle: 90 });
   }
 
   update() {
@@ -339,6 +343,13 @@ export default class BoxScene extends Phaser.Scene {
 
     this.nameText.setPosition(this.box.x, this.box.y -60);
 
+    if (this.physics.overlap(this.box, this.healZone)) {
+      if (this.concentration < 100) {
+        this.concentration += 0.1;
+        this.updateConcentrationSprite();
+      }
+    }
+
   }
 
   private addOtherPlayer(data: any) {
@@ -347,12 +358,13 @@ export default class BoxScene extends Phaser.Scene {
     const sprite = this.physics.add.sprite(data.x, data.y, texture);
 
     this.otherPlayers.set(data.id, sprite);
+    this.otherPlayersGroup.add(sprite);
+    sprite.setImmovable(true);
   }
 
   private getTextureFromDirection(dir: string, skin: string): string {
     return `${skin}_${dir}`;
   }
-
 
   private handlePlayerHit(player: Phaser.GameObjects.GameObject, bullet: Phaser.GameObjects.GameObject) {
     bullet.destroy();

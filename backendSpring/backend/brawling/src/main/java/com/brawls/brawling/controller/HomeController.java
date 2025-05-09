@@ -11,4 +11,17 @@ public class HomeController {
     public ResponseEntity<String> home() {
         return ResponseEntity.ok("Welcome to the game!");
     }
+/*
+    @GetMapping("/")
+    public String home() {
+        return "forward:/index.html"; // This will forward to your React index.html
+    }
+
+    @GetMapping("/game")
+    public String game() {
+        return "forward:/index.html"; // All routes should forward to React
+    }
+
+
+ */
 }

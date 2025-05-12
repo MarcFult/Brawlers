@@ -25,13 +25,21 @@ export default class BoxScene extends Phaser.Scene {
   private playerBullets!: Phaser.Physics.Arcade.Group;
   private enemyBullets!:  Phaser.Physics.Arcade.Group;
 
+  private lobbyId: string = "default";
+
+
   constructor() {
     super({ key: "BoxScene" });
   }
 
   init(data: any) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const lobbyIdFromUrl = urlParams.get("lobbyId");
+
     this.selectedMap = data.selectedMap || 'first_map';
     this.selectedSkin = data.selectedSkin || 'char1'; // fallback
+
+    this.lobbyId = lobbyIdFromUrl || "default";
   }
 
   preload() {
@@ -55,6 +63,9 @@ export default class BoxScene extends Phaser.Scene {
       this.load.image(`${skin}_left`, `src/assets/char/${skin}_left.png`);
       this.load.image(`${skin}_right`, `src/assets/char/${skin}_right.png`);
     }
+    this.load.on('complete', () => {
+      console.log('Alle geladenen Texturen:', this.textures.getTextureKeys());
+    });
   }
 
   create() {
@@ -75,29 +86,79 @@ export default class BoxScene extends Phaser.Scene {
       runChildUpdate: true
     });
 
-    this.socket = io("http://10.0.40.186:3001");
-    //this.socket = io("http://localhost:3001"); //Wenn ihr local seit das oben kommentieren und das untere auskommenteiren
+    // this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
+    this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
 
-    this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection, map: this.selectedMap , skin: this.selectedSkin});
+    //const socketHost = window.location.hostname;
+    //this.socket = io(`http://${socketHost}:3001`, { query: { lobbyId: this.lobbyId } });
 
-    this.socket.on("currentPlayers", (players: any) => {
-      for (const id in players) {
-        if (id !== this.socket.id) {
-          this.addOtherPlayer({ ...players[id], skin: players[id].skin || "char1" }); //idk
+    //this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection, map: this.selectedMap , skin: this.selectedSkin});
+
+    this.socket.onAny((event, ...args) => {
+      console.log(`Socket event: ${event}`, args);
+    });
+
+    // Ersetzen Sie den joinLobby-Aufruf durch:
+    this.socket.emit("joinLobby", {
+
+      lobbyId: this.lobbyId,
+      skin: this.selectedSkin
+    }, (response) => {
+
+      console.log(`Spieler ${this.socket.id} sendet Daten:`, this.data);
+      console.log('Aktualisierte Spielerdaten:', this.socket[this.socket.id]);
+
+      if (response && response.success) {
+        // Nach erfolgreichem Beitritt Spielerdaten senden
+        console.log("Aktuelle Lobby ID:", this.lobbyId);
+        this.socket.emit("playerJoined", {
+          x: this.box.x,
+          y: this.box.y,
+          dir: this.currentDirection,
+          skin: this.selectedSkin,
+          map: this.selectedMap
+        });
+
+        // Lobby-ID aktualisieren falls nötig
+        if (response.lobbyId) {
+          this.lobbyId = response.lobbyId;
         }
+      } else {
+        alert("Beitritt fehlgeschlagen: " + (response?.message || "Unbekannter Fehler"));
       }
     });
 
-    this.socket.on("newPlayer", (player: any) => {
-      this.addOtherPlayer(player);
+    this.socket.on("lobbyJoined", (data) => {
+      console.log("Lobby beigetreten:", data);
+      this.lobbyId = data.lobbyId;
+    });
+
+    this.socket.on("currentPlayers", (players) => {
+      console.log("Empfangene Spielerliste", players);
+      Object.entries(players).forEach(([id, player]) => {
+        if (id !== this.socket.id) {
+          this.addOtherPlayer({
+            id,
+            x: player.x,
+            y: player.y,
+            dir: player.dir || 'front',
+            skin: player.skin || 'char1'
+          });
+        }
+      });
+    });
+
+    this.socket.on("newPlayer", (player) => {
+      if (player.id !== this.socket.id) {
+        this.addOtherPlayer(player);
+      }
     });
 
     this.socket.on("playerMoved", (data: any) => {
       const other = this.otherPlayers.get(data.id);
       if (other) {
         other.setPosition(data.x, data.y);
-        const skin = data.skin || "char1";
-        other.setTexture(this.getTextureFromDirection(data.dir, data.skin));
+        other.setTexture(`${data.skin}_${data.dir}`);
       }
     });
 
@@ -172,7 +233,7 @@ export default class BoxScene extends Phaser.Scene {
 
     this.socket.on("updateKills", (data: any) => {
       this.kills = data.kills;
-      this.killText.setText(`${this.kills - 1 }`); // TODO fix this pls
+      this.killText.setText(`${Math.max(0, this.kills)}`);
     });
 
     this.concentrationSprite = this.add.image(470, 100, "con_100").setScrollFactor(0).setScale(0.5);
@@ -215,6 +276,13 @@ export default class BoxScene extends Phaser.Scene {
 
     this.healZone = this.physics.add.staticImage(1012, 243, "healZone").setVisible(false);
 
+    this.socket.emit("createLobby", { name: "test", maxPlayers: 4 }, (response) => {
+      if (response.success) {
+        console.log("Lobby erstellt mit ID:", response.lobbyId);
+      } else {
+        console.log("Lobby-Erstellung fehlgeschlagen");
+      }
+    });
   }
 
   shootBullet() {
@@ -349,18 +417,35 @@ export default class BoxScene extends Phaser.Scene {
         this.updateConcentrationSprite();
       }
     }
-
   }
 
   private addOtherPlayer(data: any) {
 
-    const texture = this.getTextureFromDirection(data.dir, data.skin);
-    const sprite = this.physics.add.sprite(data.x, data.y, texture);
 
-    this.otherPlayers.set(data.id, sprite);
-    this.otherPlayersGroup.add(sprite);
-    sprite.setImmovable(true);
+    console.log(`Spieler ${this. socket.id} betritt Lobby ${this.socket.id}`);
+    console.log('Aktuelle Spieler in Lobby:', Object.keys(this.socket.id));
+
+    try {
+      const textureKey = `${data.skin}_${data.dir || 'front'}`;
+      console.log("Texture Key:", textureKey);
+
+      if (!this.textures.exists(textureKey)) {
+        console.error("Texture existiert nicht!");
+        console.groupEnd();
+        return;
+      }
+
+      const sprite = this.physics.add.sprite(data.x, data.y, textureKey);
+      this.otherPlayers.set(data.id, sprite);
+
+      console.log("Erfolgreich erstellt:", sprite);
+    } catch (error) {
+      console.error("Fehler beim Erstellen:", error);
+    } finally {
+      console.groupEnd();
+    }
   }
+
 
   private getTextureFromDirection(dir: string, skin: string): string {
     return `${skin}_${dir}`;

@@ -14,11 +14,10 @@ class GameLobby {
 
         socket.join(this.id);
 
-        // INITIALE SPIELERDATEN MIT POSITIONEN
         this.players[socket.id] = {
             id: socket.id,
-            x: Math.random() * 500 + 100, // Zufällige Startposition
-            y: Math.random() * 500 + 100,
+            x: 30,
+            y: 30,
             dir: 'front',
             skin: 'char1',
             alive: true,
@@ -27,7 +26,6 @@ class GameLobby {
 
         console.log(`Neuer Spieler ${socket.id} in Lobby ${this.id}`);
 
-        // WICHTIG: Sofortige Benachrichtigung an ALLE Spieler
         this.io.to(this.id).emit("currentPlayers", this.players);
 
         socket.on("playerJoined", (data) => {

@@ -94,11 +94,6 @@ export default class BoxScene extends Phaser.Scene {
 
     //this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection, map: this.selectedMap , skin: this.selectedSkin});
 
-    this.socket.onAny((event, ...args) => {
-      console.log(`Socket event: ${event}`, args);
-    });
-
-    // Ersetzen Sie den joinLobby-Aufruf durch:
     this.socket.emit("joinLobby", {
 
       lobbyId: this.lobbyId,
@@ -109,7 +104,6 @@ export default class BoxScene extends Phaser.Scene {
       console.log('Aktualisierte Spielerdaten:', this.socket[this.socket.id]);
 
       if (response && response.success) {
-        // Nach erfolgreichem Beitritt Spielerdaten senden
         console.log("Aktuelle Lobby ID:", this.lobbyId);
         this.socket.emit("playerJoined", {
           x: this.box.x,
@@ -119,7 +113,6 @@ export default class BoxScene extends Phaser.Scene {
           map: this.selectedMap
         });
 
-        // Lobby-ID aktualisieren falls nötig
         if (response.lobbyId) {
           this.lobbyId = response.lobbyId;
         }

@@ -2,74 +2,163 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8" />
-    <title>Brawlers – Lobby</title>
+    <title>DLC – Lobby</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #111; color: #eee; }
-        input, button { padding: 8px; margin: 5px; }
-        .lobby { border: 1px solid #555; padding: 10px; margin-top: 10px; background: #222; }
+        body {
+            font-family: 'Arial', sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #eee;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #ff6600;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            background: #222;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        input, button, select {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: none;
+        }
+        input {
+            width: 100%;
+            background: #333;
+            color: white;
+        }
+        button {
+            background: #ff6600;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #ff8533;
+        }
+        .lobby {
+            border: 1px solid #444;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            background: #2a2a2a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .lobby-info {
+            flex-grow: 1;
+        }
+        .lobby button {
+            margin-left: 10px;
+        }
+        .lobby-id {
+            font-family: monospace;
+            font-size: 18px;
+            color: #ff6600;
+        }
+        .player-count {
+            color: #aaa;
+            font-size: 14px;
+        }
+        .copy-btn {
+            background: #444;
+            margin-right: 5px;
+        }
+        .copy-btn:hover {
+            background: #555;
+        }
     </style>
 </head>
 <body>
-<h1> Braw Lobby</h1>
+<h1>DLC LOBBY</h1>
 
-<div>
-    <h3>Lobby erstellen</h3>
-    <input type="text" id="lobbyName" placeholder="Lobbyname" />
+<div class="section">
+    <h3>Neue Lobby erstellen</h3>
     <input type="number" id="maxPlayers" placeholder="Max Spieler" value="4" min="2" max="10" />
-    <button onclick="createLobby()">Erstellen</button>
+    <button onclick="createLobby()">Lobby erstellen</button>
 </div>
 
-<div>
-    <h3>Offene Lobbys</h3>
-    <div id="lobbyList">Wird geladen...</div>
+<div class="section">
+    <h3>Verfügbare Lobbys</h3>
+    <div id="lobbyList">Lade Lobbys...</div>
 </div>
 
 <script>
     const socket = io("http://localhost:3001");
 
+    // Initiale Lobby-Liste abrufen
     socket.emit("getLobbies", (lobbies) => renderLobbies(lobbies));
 
+    // Lobby-Updates empfangen
     socket.on("lobbyListUpdate", (lobbies) => renderLobbies(lobbies));
 
     function createLobby() {
-        const name = document.getElementById("lobbyName").value;
         const maxPlayers = parseInt(document.getElementById("maxPlayers").value);
 
-        if (!name) return alert("Bitte einen Namen eingeben!");
-
-        socket.emit("createLobby", { name, maxPlayers }, (response) => {
+        socket.emit("createLobby", {
+            name: "DLC Match", // Fester Name, da wir nur die ID brauchen
+            maxPlayers
+        }, (response) => {
             if (response.success) {
                 joinLobby(response.lobbyId);
+            } else {
+                alert("Fehler: " + (response.message || "Lobby konnte nicht erstellt werden"));
             }
         });
     }
 
     function renderLobbies(lobbies) {
         const container = document.getElementById("lobbyList");
-        container.innerHTML = "";
 
-        if (lobbies.length === 0) {
-            container.textContent = "Keine offenen Lobbys.";
+        if (!lobbies || lobbies.length === 0) {
+            container.innerHTML = "<p>Keine offenen Lobbys vorhanden.</p>";
             return;
         }
 
+        container.innerHTML = "";
+
         lobbies.forEach(lobby => {
-            const div = document.createElement("div");
-            div.className = "lobby";
-            div.innerHTML = `
-          <strong>${lobby.name}</strong> [${lobby.currentPlayers}/${lobby.maxPlayers}]
-          <button onclick="joinLobby('${lobby.id}')">Beitreten</button>
-        `;
-            container.appendChild(div);
+            const lobbyElement = document.createElement("div");
+            lobbyElement.className = "lobby";
+
+            lobbyElement.innerHTML = `
+                <div class="lobby-info">
+                    <div class="lobby-id">${lobby.id}</div>
+                    <div class="player-count">Spieler: ${lobby.currentPlayers}/${lobby.maxPlayers}</div>
+                </div>
+                <div>
+                    <button class="copy-btn" onclick="copyLobbyId('${lobby.id}')">Kopieren</button>
+                    <button onclick="joinLobby('${lobby.id}')">Beitreten</button>
+                </div>
+            `;
+
+            container.appendChild(lobbyElement);
         });
     }
 
-    function joinLobby() {
-        const lobbyId = document.getElementById('lobbyInput').value;
-        if (lobbyId) {
-            window.location.href = `/game.html?lobbyId=${encodeURIComponent(lobbyId)}`;
+    function copyLobbyId(lobbyId) {
+        navigator.clipboard.writeText(lobbyId)
+            .then(() => alert("Lobby-ID kopiert: " + lobbyId))
+            .catch(err => console.error("Kopieren fehlgeschlagen: ", err));
+    }
+
+    function joinLobby(lobbyId) {
+        if (!lobbyId) {
+            alert("Ungültige Lobby-ID");
+            return;
         }
+        window.location.href = `game.html?lobbyId=${encodeURIComponent(lobbyId)}`;
     }
 </script>
 </body>

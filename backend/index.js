@@ -24,7 +24,6 @@ io.on("connection", (socket) => {
   socket.on("joinLobby", ({ lobbyId, skin }, callback) => {
     console.log("Client tritt Lobby bei:", { lobbyId, skin });
 
-    // Finde die erste passende Lobby (für Testzwecke)
     let targetLobby = null;
     for (const [id, lobby] of lobbyManager.lobbies.entries()) {
       if (id === lobbyId || lobbyId === "default") {
@@ -34,14 +33,13 @@ io.on("connection", (socket) => {
     }
 
     if (!targetLobby) {
-      // Falls keine Lobby existiert, erstellen wir eine
+      // Falls keine Lobby existiertn erstellen wir eine
       targetLobby = lobbyManager.createLobby("Default Lobby", 4, socket);
     }
 
     const result = lobbyManager.joinLobby(targetLobby, socket);
 
     if (result.success) {
-      // Wichtig: Hier die Skin-Daten speichern
       socket.emit("lobbyJoined", {
         success: true,
         lobbyId: targetLobby,

@@ -439,11 +439,6 @@ export default class BoxScene extends Phaser.Scene {
     }
   }
 
-
-  private getTextureFromDirection(dir: string, skin: string): string {
-    return `${skin}_${dir}`;
-  }
-
   private handlePlayerHit(player: Phaser.GameObjects.GameObject, bullet: Phaser.GameObjects.GameObject) {
     bullet.destroy();
 

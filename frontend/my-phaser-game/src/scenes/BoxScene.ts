@@ -86,13 +86,11 @@ export default class BoxScene extends Phaser.Scene {
       runChildUpdate: true
     });
 
-    // this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
+    //this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
     this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
 
     //const socketHost = window.location.hostname;
     //this.socket = io(`http://${socketHost}:3001`, { query: { lobbyId: this.lobbyId } });
-
-    //this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection, map: this.selectedMap , skin: this.selectedSkin});
 
     this.socket.emit("joinLobby", {
 
@@ -225,7 +223,7 @@ export default class BoxScene extends Phaser.Scene {
     }).setScrollFactor(0);
 
     this.socket.on("updateKills", (data: any) => {
-      this.kills = data.kills;
+      this.kills = Math.floor(data.kills / 2);
       this.killText.setText(`${Math.max(0, this.kills)}`);
     });
 
@@ -413,7 +411,6 @@ export default class BoxScene extends Phaser.Scene {
   }
 
   private addOtherPlayer(data: any) {
-
 
     console.log(`Spieler ${this. socket.id} betritt Lobby ${this.socket.id}`);
     console.log('Aktuelle Spieler in Lobby:', Object.keys(this.socket.id));

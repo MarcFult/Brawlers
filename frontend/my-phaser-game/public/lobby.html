@@ -85,7 +85,7 @@
 
 <div class="section">
     <h3>Neue Lobby erstellen</h3>
-    <input type="number" id="maxPlayers" placeholder="Max Spieler" value="4" min="2" max="100" />
+    <input type="number" id="maxPlayers" placeholder="Max Spieler" value="4" min="2" max="10" />
     <button onclick="createLobby()">Lobby erstellen</button>
 </div>
 
@@ -95,7 +95,7 @@
 </div>
 
 <script>
-     // const socket = io("http://10.0.40.186:3001");
+    //const socket = io("http://10.0.40.186:3001");
     const socket = io("http://localhost:3001")
 
     socket.emit("getLobbies", (lobbies) => renderLobbies(lobbies));

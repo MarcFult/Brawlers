@@ -1,11 +1,12 @@
 const { Server } = require("socket.io");
 const http = require("http");
 const LobbyManager = require("./LobbyManager");
+const express = require("express");
 
 const server = http.createServer();
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "http://10.0.40.186:5173",
     methods: ["GET", "POST"],
   },
 });
@@ -33,7 +34,6 @@ io.on("connection", (socket) => {
     }
 
     if (!targetLobby) {
-      // Falls keine Lobby existiertn erstellen wir eine
       targetLobby = lobbyManager.createLobby("Default Lobby", 4, socket);
     }
 

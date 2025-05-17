@@ -14,5 +14,22 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  app:
+    container_name: brawling-app
+    restart: always
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+    build:
+      context: ./brawling      
+      dockerfile: Dockerfile  
+    environment:
+      SPRING_DATASOURCE_URL:      jdbc:postgresql://postgres:5432/brawlingdb
+      SPRING_DATASOURCE_USERNAME: squirter
+      SPRING_DATASOURCE_PASSWORD: squirt123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT:                8081
+
 volumes:
   postgres_data:

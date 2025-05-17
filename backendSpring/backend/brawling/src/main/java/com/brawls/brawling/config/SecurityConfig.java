@@ -4,25 +4,23 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
 @Configuration
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
+                // disable CSRF if you only serve a REST API
+                .csrf(csrf -> csrf.disable())
+                // allow everyone to GET "/" but secure any other endpoints
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/users","/api/auth/users/**").permitAll() // Allow the users endpoint
-                        .anyRequest().authenticated()
-                );
+                        .requestMatchers("/").permitAll()
+                        .anyRequest().authenticated())
+                // keep HTTP Basic for any other endpoints
+                .httpBasic(Customizer.withDefaults());
 
         return http.build();
     }
 }
-
-
-

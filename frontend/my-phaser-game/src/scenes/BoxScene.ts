@@ -6,6 +6,7 @@ export default class BoxScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private bullets: Phaser.Physics.Arcade.Group;
   private shootKey: any;
+  private wasdKeys: any;
   private currentDirection: string = "front";
   private concentration: number = 100;
   private concentrationText!: Phaser.GameObjects.Text;
@@ -19,6 +20,9 @@ export default class BoxScene extends Phaser.Scene {
   private nameText!: Phaser.GameObjects.Text;
   private otherPlayersGroup!: Phaser.Physics.Arcade.Group;
   private healZone! : Phaser.GameObjects.Image;
+  private rKey!: Phaser.Input.Keyboard.Key | undefined;
+  private bgMusic: Phaser.Sound.BaseSound;
+
 
   private socket!: Socket;
   private otherPlayers: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
@@ -52,7 +56,10 @@ export default class BoxScene extends Phaser.Scene {
     this.load.image("con_50", "src/assets/con_50.png");
     this.load.image("con_75", "src/assets/con_75.png");
     this.load.image("con_100", "src/assets/con_100.png");
-    this.load.image("kill_buddy", "src/assets/char_kill.png")
+    this.load.image("kill_buddy", "src/assets/char_kill.png");
+
+    //background muisic
+    this.load.audio("bgMusic", "src/assets/back.mp3");
 
     //Skins
     const skins = ["char1", "ralph", "pepe", "Peter_H", "caretaker"];
@@ -63,9 +70,6 @@ export default class BoxScene extends Phaser.Scene {
       this.load.image(`${skin}_left`, `src/assets/char/${skin}_left.png`);
       this.load.image(`${skin}_right`, `src/assets/char/${skin}_right.png`);
     }
-    this.load.on('complete', () => {
-      console.log('Alle geladenen Texturen:', this.textures.getTextureKeys());
-    });
   }
 
   create() {
@@ -79,27 +83,35 @@ export default class BoxScene extends Phaser.Scene {
     this.box.setCollideWorldBounds(true);
 
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.shootKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.shootKey = this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+    // WASD-Tasten hinzufügen
+    this.wasdKeys = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.W,
+      down: Phaser.Input.Keyboard.KeyCodes.S,
+      left: Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D
+    });
+
 
     this.bullets = this.physics.add.group({
       classType: Phaser.Physics.Arcade.Image,
       runChildUpdate: true
     });
 
-    //this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
-    this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
+    this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
+    // this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
 
     //const socketHost = window.location.hostname;
     //this.socket = io(`http://${socketHost}:3001`, { query: { lobbyId: this.lobbyId } });
+
 
     this.socket.emit("joinLobby", {
 
       lobbyId: this.lobbyId,
       skin: this.selectedSkin
     }, (response) => {
-
-      console.log(`Spieler ${this.socket.id} sendet Daten:`, this.data);
-      console.log('Aktualisierte Spielerdaten:', this.socket[this.socket.id]);
 
       if (response && response.success) {
         console.log("Aktuelle Lobby ID:", this.lobbyId);
@@ -120,14 +132,12 @@ export default class BoxScene extends Phaser.Scene {
     });
 
     this.socket.on("lobbyJoined", (data) => {
-      console.log("Lobby beigetreten:", data);
       this.lobbyId = data.lobbyId;
     });
 
     this.socket.on("currentPlayers", (players) => {
-      console.log("Empfangene Spielerliste", players);
       Object.entries(players).forEach(([id, player]) => {
-        if (id !== this.socket.id) {
+        if (id !== this.socket.id && !this.otherPlayers.has(id)) {
           this.addOtherPlayer({
             id,
             x: player.x,
@@ -140,10 +150,11 @@ export default class BoxScene extends Phaser.Scene {
     });
 
     this.socket.on("newPlayer", (player) => {
-      if (player.id !== this.socket.id) {
+      if (player.id !== this.socket.id && !this.otherPlayers.has(player.id)) {
         this.addOtherPlayer(player);
       }
     });
+
 
     this.socket.on("playerMoved", (data: any) => {
       const other = this.otherPlayers.get(data.id);
@@ -267,13 +278,22 @@ export default class BoxScene extends Phaser.Scene {
 
     this.healZone = this.physics.add.staticImage(1012, 243, "healZone").setVisible(false);
 
-    this.socket.emit("createLobby", { name: "test", maxPlayers: 4 }, (response) => {
+    this.socket.emit("createLobby", { name: "test", maxPlayers: 4 }, (response) => { // nix damit machen ansonsten kaputt
       if (response.success) {
         console.log("Lobby erstellt mit ID:", response.lobbyId);
       } else {
         console.log("Lobby-Erstellung fehlgeschlagen");
       }
     });
+
+    this.rKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+
+    this.bgMusic = this.sound.add('bgMusic', {
+      loop: true,
+      volume: 0.8
+    });
+    this.bgMusic.play();
+
   }
 
   shootBullet() {
@@ -359,12 +379,18 @@ export default class BoxScene extends Phaser.Scene {
 
     let moved = false;
 
-    if (this.cursors.left.isDown) {
+    const left = this.cursors.left.isDown || this.wasdKeys.left.isDown;
+    const right = this.cursors.right.isDown || this.wasdKeys.right.isDown;
+    const up = this.cursors.up.isDown || this.wasdKeys.up.isDown;
+    const down = this.cursors.down.isDown || this.wasdKeys.down.isDown;
+
+
+    if (left) {
       this.box.setVelocityX(-250);
       this.box.setTexture(`${this.selectedSkin}_left`);
       this.currentDirection = "left";
       moved = true;
-    } else if (this.cursors.right.isDown) {
+    } else if (right) {
       this.box.setVelocityX(250);
       this.box.setTexture(`${this.selectedSkin}_right`);
       this.currentDirection = "right";
@@ -373,12 +399,12 @@ export default class BoxScene extends Phaser.Scene {
       this.box.setVelocityX(0);
     }
 
-    if (this.cursors.up.isDown) {
+    if (up) {
       this.box.setVelocityY(-250);
       this.box.setTexture(`${this.selectedSkin}_back`);
       this.currentDirection = "back"; //das war mal up
       moved = true;
-    } else if (this.cursors.down.isDown) {
+    } else if (down) {
       this.box.setVelocityY(250);
       this.box.setTexture(`${this.selectedSkin}_front`);
       this.currentDirection = "front"; //das war mal down
@@ -408,20 +434,23 @@ export default class BoxScene extends Phaser.Scene {
         this.updateConcentrationSprite();
       }
     }
+
+    if (Phaser.Input.Keyboard.JustDown(this.rKey)) {
+      const ytUrl = "https://www.youtube.com/watch?v=YAgJ9XugGBo";
+      window.open(ytUrl, "_blank");
+    }
+
   }
 
   private addOtherPlayer(data: any) {
-
-    console.log(`Spieler ${this. socket.id} betritt Lobby ${this.socket.id}`);
-    console.log('Aktuelle Spieler in Lobby:', Object.keys(this.socket.id));
-
     try {
+      if (this.otherPlayers.has(data.id)) {
+        return;
+      }
+
       const textureKey = `${data.skin}_${data.dir || 'front'}`;
-      console.log("Texture Key:", textureKey);
 
       if (!this.textures.exists(textureKey)) {
-        console.error("Texture existiert nicht!");
-        console.groupEnd();
         return;
       }
 
@@ -435,6 +464,7 @@ export default class BoxScene extends Phaser.Scene {
       console.groupEnd();
     }
   }
+
 
   private handlePlayerHit(player: Phaser.GameObjects.GameObject, bullet: Phaser.GameObjects.GameObject) {
     bullet.destroy();

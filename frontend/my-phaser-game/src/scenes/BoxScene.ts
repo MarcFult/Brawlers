@@ -6,7 +6,8 @@ export default class BoxScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private bullets: Phaser.Physics.Arcade.Group;
   private shootKey: any;
-  private currentDirection: string = "down";
+  private wasdKeys: any;
+  private currentDirection: string = "front";
   private concentration: number = 100;
   private concentrationText!: Phaser.GameObjects.Text;
   private concentrationSprite!: Phaser.GameObjects.Image;
@@ -15,26 +16,37 @@ export default class BoxScene extends Phaser.Scene {
   private killText!: Phaser.GameObjects.Text;
   private killSprite!: Phaser.GameObjects.Image;
   private selectedMap: string = 'first_map';
+  private selectedSkin: string = 'char1';
+  private nameText!: Phaser.GameObjects.Text;
+  private otherPlayersGroup!: Phaser.Physics.Arcade.Group;
+  private healZone! : Phaser.GameObjects.Image;
+  private rKey!: Phaser.Input.Keyboard.Key | undefined;
+  private bgMusic: Phaser.Sound.BaseSound;
+
 
   private socket!: Socket;
   private otherPlayers: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
   private playerBullets!: Phaser.Physics.Arcade.Group;
   private enemyBullets!:  Phaser.Physics.Arcade.Group;
 
+  private lobbyId: string = "default";
+
+
   constructor() {
     super({ key: "BoxScene" });
   }
 
   init(data: any) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const lobbyIdFromUrl = urlParams.get("lobbyId");
+
     this.selectedMap = data.selectedMap || 'first_map';
+    this.selectedSkin = data.selectedSkin || 'char1'; // fallback
+
+    this.lobbyId = lobbyIdFromUrl || "default";
   }
 
-
   preload() {
-    this.load.image("char_down", 'src/assets/char_behind.png')
-    this.load.image("char_up", 'src/assets/char_front.png')
-    this.load.image("char_left", 'src/assets/char_left.png')
-    this.load.image("char_right", 'src/assets/char_right.png')
     this.load.image("bullet", 'src/assets/test_bullet.png')
     this.load.image("test_map", 'src/assets/roomSB.png')
     this.load.image("first_map", 'src/assets/first_map.png')
@@ -44,7 +56,20 @@ export default class BoxScene extends Phaser.Scene {
     this.load.image("con_50", "src/assets/con_50.png");
     this.load.image("con_75", "src/assets/con_75.png");
     this.load.image("con_100", "src/assets/con_100.png");
-    this.load.image("kill_buddy", "src/assets/char_kill.png")
+    this.load.image("kill_buddy", "src/assets/char_kill.png");
+
+    //background muisic
+    this.load.audio("bgMusic", "src/assets/back.mp3");
+
+    //Skins
+    const skins = ["char1", "ralph", "pepe", "Peter_H", "caretaker"];
+
+    for (const skin of skins) {
+      this.load.image(`${skin}_front`, `src/assets/char/${skin}_front.png`);
+      this.load.image(`${skin}_back`, `src/assets/char/${skin}_back.png`);
+      this.load.image(`${skin}_left`, `src/assets/char/${skin}_left.png`);
+      this.load.image(`${skin}_right`, `src/assets/char/${skin}_right.png`);
+    }
   }
 
   create() {
@@ -53,12 +78,21 @@ export default class BoxScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, 1134, 1110);
     this.physics.world.setBounds(53, 160, 1022, 900);
 
-    this.box = this.physics.add.sprite(30, 30, "char_down");
+    this.box = this.physics.add.sprite(30, 30, `${this.selectedSkin}_front`);
     this.box.setBounce(0.2);
     this.box.setCollideWorldBounds(true);
 
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.shootKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.shootKey = this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+    // WASD-Tasten hinzufügen
+    this.wasdKeys = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.W,
+      down: Phaser.Input.Keyboard.KeyCodes.S,
+      left: Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D
+    });
 
 
     this.bullets = this.physics.add.group({
@@ -66,29 +100,67 @@ export default class BoxScene extends Phaser.Scene {
       runChildUpdate: true
     });
 
-    //this.socket = io("http://10.0.40.186:3001");
-    this.socket = io("http://localhost:3001");
+    this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
+    // this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
+
+    //const socketHost = window.location.hostname;
+    //this.socket = io(`http://${socketHost}:3001`, { query: { lobbyId: this.lobbyId } });
 
 
-    this.socket.emit("playerJoined", { x: this.box.x, y: this.box.y, dir: this.currentDirection, map: this.selectedMap });
+    this.socket.emit("joinLobby", {
 
-    this.socket.on("currentPlayers", (players: any) => {
-      for (const id in players) {
-        if (id !== this.socket.id) {
-          this.addOtherPlayer(players[id]);
+      lobbyId: this.lobbyId,
+      skin: this.selectedSkin
+    }, (response) => {
+
+      if (response && response.success) {
+        console.log("Aktuelle Lobby ID:", this.lobbyId);
+        this.socket.emit("playerJoined", {
+          x: this.box.x,
+          y: this.box.y,
+          dir: this.currentDirection,
+          skin: this.selectedSkin,
+          map: this.selectedMap
+        });
+
+        if (response.lobbyId) {
+          this.lobbyId = response.lobbyId;
         }
+      } else {
+        alert("Beitritt fehlgeschlagen: " + (response?.message || "Unbekannter Fehler"));
       }
     });
 
-    this.socket.on("newPlayer", (player: any) => {
-      this.addOtherPlayer(player);
+    this.socket.on("lobbyJoined", (data) => {
+      this.lobbyId = data.lobbyId;
     });
+
+    this.socket.on("currentPlayers", (players) => {
+      Object.entries(players).forEach(([id, player]) => {
+        if (id !== this.socket.id && !this.otherPlayers.has(id)) {
+          this.addOtherPlayer({
+            id,
+            x: player.x,
+            y: player.y,
+            dir: player.dir || 'front',
+            skin: player.skin || 'char1'
+          });
+        }
+      });
+    });
+
+    this.socket.on("newPlayer", (player) => {
+      if (player.id !== this.socket.id && !this.otherPlayers.has(player.id)) {
+        this.addOtherPlayer(player);
+      }
+    });
+
 
     this.socket.on("playerMoved", (data: any) => {
       const other = this.otherPlayers.get(data.id);
       if (other) {
         other.setPosition(data.x, data.y);
-        other.setTexture(this.getTextureFromDirection(data.dir));
+        other.setTexture(`${data.skin}_${data.dir}`);
       }
     });
 
@@ -124,7 +196,6 @@ export default class BoxScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.box, this.enemyBullets, this.handlePlayerHit, undefined, this);
 
-
     this.socket.on("hitConfirmed", (data: any) => {
       if (data.targetId === this.socket.id) {
         this.loseConcentration(25);
@@ -134,10 +205,12 @@ export default class BoxScene extends Phaser.Scene {
     this.socket.on("playerDied", (data: any) => {
       const deadPlayer = this.otherPlayers.get(data.id);
       if (deadPlayer) {
-        deadPlayer.setTint(0xff0000); // rot einfärben
-        deadPlayer.setActive(false).setVisible(true); // optional: nicht mehr beweglich
+        deadPlayer.setTint(0xff0000); // rot einfärben als tot
+        deadPlayer.setActive(false).setVisible(true); // optional: nicht mehr beweglich sonst funny
+        deadPlayer.setAngle(data.angle || 0);
       }
     });
+
     this.socket.on("playerWasHit", (data: any) => {
 
       const hitPlayer = this.otherPlayers.get(data.targetId);
@@ -161,11 +234,65 @@ export default class BoxScene extends Phaser.Scene {
     }).setScrollFactor(0);
 
     this.socket.on("updateKills", (data: any) => {
-      this.kills = data.kills;
-      this.killText.setText(`Kills: ${this.kills}`);
+      this.kills = Math.floor(data.kills / 2);
+      this.killText.setText(`${Math.max(0, this.kills)}`);
     });
 
     this.concentrationSprite = this.add.image(470, 100, "con_100").setScrollFactor(0).setScale(0.5);
+
+    if (this.selectedMap === "second_map") {
+      const tableBorders = this.physics.add.staticGroup();
+
+      tableBorders.create(570, 497, null)
+          .setDisplaySize(576, 90)
+          .refreshBody()
+          .setVisible();
+
+      tableBorders.create(570, 702, null)
+          .setDisplaySize(576, 90)
+          .refreshBody()
+          .setVisible();
+
+      tableBorders.create(570, 905, null)
+          .setDisplaySize(576, 90)
+          .refreshBody()
+          .setVisible();
+
+      // Spieler kann nicht durch
+      this.physics.add.collider(this.box, tableBorders);
+
+      this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());
+      this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
+    }
+
+    this.nameText = this.add.text(this.box.x, this.box.y - 60, 'YOU', {
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      padding: { x: 4, y: 2 }
+    }).setOrigin(0.5);
+
+    this.otherPlayersGroup = this.physics.add.group();
+
+    this.physics.add.collider(this.box, this.otherPlayersGroup);
+
+    this.healZone = this.physics.add.staticImage(1012, 243, "healZone").setVisible(false);
+
+    this.socket.emit("createLobby", { name: "test", maxPlayers: 4 }, (response) => { // nix damit machen ansonsten kaputt
+      if (response.success) {
+        console.log("Lobby erstellt mit ID:", response.lobbyId);
+      } else {
+        console.log("Lobby-Erstellung fehlgeschlagen");
+      }
+    });
+
+    this.rKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+
+    this.bgMusic = this.sound.add('bgMusic', {
+      loop: true,
+      volume: 0.8
+    });
+    this.bgMusic.play();
 
   }
 
@@ -207,8 +334,8 @@ export default class BoxScene extends Phaser.Scene {
       velocity.x = baseSpeed;
     } else {
       switch (this.currentDirection) {
-        case "up": velocity.y = -baseSpeed; break;
-        case "down": velocity.y = baseSpeed; break;
+        case "back": velocity.y = -baseSpeed; break;
+        case "front": velocity.y = baseSpeed; break;
         case "left": velocity.x = -baseSpeed; break;
         case "right": velocity.x = baseSpeed; break;
       }
@@ -237,13 +364,14 @@ export default class BoxScene extends Phaser.Scene {
     }
   }
 
-
   //KOOOOOOOKS!!!!!!!!!!!
 
   handleGameOver() {
     this.box.setActive(false).setVisible(true);
     this.box.setTint(0xff0000);
+    this.box.setAngle(90);
     this.isGameOver = true;
+    this.socket.emit("playerDead", { angle: 90 });
   }
 
   update() {
@@ -251,29 +379,35 @@ export default class BoxScene extends Phaser.Scene {
 
     let moved = false;
 
-    if (this.cursors.left.isDown) {
+    const left = this.cursors.left.isDown || this.wasdKeys.left.isDown;
+    const right = this.cursors.right.isDown || this.wasdKeys.right.isDown;
+    const up = this.cursors.up.isDown || this.wasdKeys.up.isDown;
+    const down = this.cursors.down.isDown || this.wasdKeys.down.isDown;
+
+
+    if (left) {
       this.box.setVelocityX(-250);
-      this.box.setTexture('char_left');
+      this.box.setTexture(`${this.selectedSkin}_left`);
       this.currentDirection = "left";
       moved = true;
-    } else if (this.cursors.right.isDown) {
+    } else if (right) {
       this.box.setVelocityX(250);
-      this.box.setTexture('char_right');
+      this.box.setTexture(`${this.selectedSkin}_right`);
       this.currentDirection = "right";
       moved = true;
     } else {
       this.box.setVelocityX(0);
     }
 
-    if (this.cursors.up.isDown) {
+    if (up) {
       this.box.setVelocityY(-250);
-      this.box.setTexture('char_down');
-      this.currentDirection = "up";
+      this.box.setTexture(`${this.selectedSkin}_back`);
+      this.currentDirection = "back"; //das war mal up
       moved = true;
-    } else if (this.cursors.down.isDown) {
+    } else if (down) {
       this.box.setVelocityY(250);
-      this.box.setTexture('char_up');
-      this.currentDirection = "down";
+      this.box.setTexture(`${this.selectedSkin}_front`);
+      this.currentDirection = "front"; //das war mal down
       moved = true;
     } else {
       this.box.setVelocityY(0);
@@ -284,26 +418,52 @@ export default class BoxScene extends Phaser.Scene {
     }
 
     if (moved) {
-      this.socket.emit("playerMoved", { x: this.box.x, y: this.box.y, dir: this.currentDirection });
+      this.socket.emit("playerMoved", {
+        x: this.box.x,
+        y: this.box.y,
+        dir: this.currentDirection,
+        skin: this.selectedSkin
+      });
     }
+
+    this.nameText.setPosition(this.box.x, this.box.y -60);
+
+    if (this.physics.overlap(this.box, this.healZone)) {
+      if (this.concentration < 100) {
+        this.concentration += 0.1;
+        this.updateConcentrationSprite();
+      }
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.rKey)) {
+      const ytUrl = "https://www.youtube.com/watch?v=YAgJ9XugGBo";
+      window.open(ytUrl, "_blank");
+    }
+
   }
 
   private addOtherPlayer(data: any) {
-    const sprite = this.physics.add.sprite(data.x, data.y, this.getTextureFromDirection(data.dir || "down"));
-    sprite.setTint(0x00ff00);
-    this.otherPlayers.set(data.id, sprite);
-  }
+    try {
+      if (this.otherPlayers.has(data.id)) {
+        return;
+      }
 
-  private getTextureFromDirection(dir: string): string {
-    switch (dir) {
-      case "up": return "char_down";
-      case "down": return "char_up";
-      case "left": return "char_left";
-      case "right": return "char_right";
-      default: return "char_down";
+      const textureKey = `${data.skin}_${data.dir || 'front'}`;
+
+      if (!this.textures.exists(textureKey)) {
+        return;
+      }
+
+      const sprite = this.physics.add.sprite(data.x, data.y, textureKey);
+      this.otherPlayers.set(data.id, sprite);
+
+      console.log("Erfolgreich erstellt:", sprite);
+    } catch (error) {
+      console.error("Fehler beim Erstellen:", error);
+    } finally {
+      console.groupEnd();
     }
   }
-
 
 
   private handlePlayerHit(player: Phaser.GameObjects.GameObject, bullet: Phaser.GameObjects.GameObject) {
@@ -311,7 +471,7 @@ export default class BoxScene extends Phaser.Scene {
 
     this.loseConcentration(25);
 
-    // Schütze informieren, dass er getroffen hat
+    // Schütze informieren das er getroffen hat
     const shooterId = (bullet as any).shooterId;
     if (shooterId && shooterId !== this.socket.id) {
       this.socket.emit("playerHit", { shooterId, targetId: this.socket.id });

@@ -1,5 +1,6 @@
 package com.brawls.brawling.controller;
 
+import com.brawls.brawling.models.DTO.UserDto;
 import com.brawls.brawling.models.LoginRequest;
 import com.brawls.brawling.models.LoginResponse;
 import org.springframework.http.HttpStatus;
@@ -35,9 +36,11 @@ public class UserController {
 
     // New route to get all users
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userService.getAllUsers();
-        return new ResponseEntity<>(users, HttpStatus.OK);  // 200 OK
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        List<UserDto> dtos = userService.getAllUsers().stream()
+                .map(u -> new UserDto(u.getId(), u.getUsername(), u.getEmail()))
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @PostMapping("/login")

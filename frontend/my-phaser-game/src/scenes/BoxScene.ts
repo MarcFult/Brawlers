@@ -22,6 +22,8 @@ export default class BoxScene extends Phaser.Scene {
   private healZone! : Phaser.GameObjects.Image;
   private rKey!: Phaser.Input.Keyboard.Key | undefined;
   private bgMusic: Phaser.Sound.BaseSound;
+  private recentlyDamagedByCloud: boolean = false;
+
 
 
   private socket!: Socket;
@@ -48,15 +50,21 @@ export default class BoxScene extends Phaser.Scene {
 
   preload() {
     this.load.image("bullet", 'src/assets/test_bullet.png')
+
+    //maps
     this.load.image("test_map", 'src/assets/roomSB.png')
     this.load.image("first_map", 'src/assets/first_map.png')
     this.load.image("second_map", 'src/assets/second_map.png')
+    this.load.image("third_map", 'src/assets/third_map.png')
+    //concentration
     this.load.image("con_0", "src/assets/con_0.png");
     this.load.image("con_25", "src/assets/con_25.png");
     this.load.image("con_50", "src/assets/con_50.png");
     this.load.image("con_75", "src/assets/con_75.png");
     this.load.image("con_100", "src/assets/con_100.png");
     this.load.image("kill_buddy", "src/assets/char_kill.png");
+    this.load.image("cloud", "src/assets/cloud.png");
+
 
     //background muisic
     this.load.audio("bgMusic", "src/assets/back.mp3");
@@ -205,23 +213,31 @@ export default class BoxScene extends Phaser.Scene {
     this.socket.on("playerDied", (data: any) => {
       const deadPlayer = this.otherPlayers.get(data.id);
       if (deadPlayer) {
-        deadPlayer.setTint(0xff0000); // rot einfärben als tot
+        deadPlayer.setTint(0x0000CD); // blau einfärben als tot TODO me fix blue
         deadPlayer.setActive(false).setVisible(true); // optional: nicht mehr beweglich sonst funny
         deadPlayer.setAngle(data.angle || 0);
       }
     });
 
     this.socket.on("playerWasHit", (data: any) => {
-
       const hitPlayer = this.otherPlayers.get(data.targetId);
-      if (data.targetId === this.socket.id) return; // eigener Schaden wird separat behandelt
+      if (data.targetId === this.socket.id) return;
 
       if (hitPlayer) {
-        this.tweens.add({
-          targets: hitPlayer,
-          alpha: 0.5,
-          duration: 100,
-          yoyo: true
+        this.tweens.addCounter({
+          from: 0,
+          to: 1,
+          duration: 500,
+          onUpdate: tween => {
+            const value = tween.getValue();
+
+            const r = Math.floor(255 * (1 - value));
+            const g = Math.floor(255 * (1 - value));
+            const b = Math.floor(139 + (255 - 139) * (1 - value));
+
+            const color = (r << 16) + (g << 8) + b;
+            hitPlayer.setTint(color);
+          }
         });
       }
     });
@@ -260,7 +276,29 @@ export default class BoxScene extends Phaser.Scene {
 
       // Spieler kann nicht durch
       this.physics.add.collider(this.box, tableBorders);
+      this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());
+      this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
+    }
 
+    if (this.selectedMap == "third_map"){
+      const tableBorders = this.physics.add.staticGroup();
+
+      tableBorders.create(280, 600)
+          .setDisplaySize(95, 435)
+          .refreshBody()
+          .setVisible();
+
+      tableBorders.create(570, 875)
+          .setDisplaySize(686, 100)
+          .refreshBody()
+          .setVisible();
+
+      tableBorders.create(870, 600)
+          .setDisplaySize(95, 435)
+          .refreshBody()
+          .setVisible();
+
+      this.physics.add.collider(this.box, tableBorders);
       this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());
       this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
     }
@@ -293,6 +331,13 @@ export default class BoxScene extends Phaser.Scene {
       volume: 0.8
     });
     this.bgMusic.play();
+
+
+    if (this.selectedMap === "third_map") {
+      this.time.delayedCall(20000, () => {
+        this.spawnDamageCloud(); // nach 10 Sekunden
+      });
+    }
 
   }
 
@@ -497,6 +542,24 @@ export default class BoxScene extends Phaser.Scene {
       key = "con_25";
     }
     this.concentrationSprite.setTexture(key);
+  }
+
+  private spawnDamageCloud() {
+    const cloud = this.physics.add.staticImage(570, 550, "cloud") // Position anpassen
+        .setDisplaySize(300, 300) // größe
+        .setAlpha(0.6);
+
+    this.physics.add.overlap(this.box, cloud, () => {
+      if (!this.isGameOver && !this.recentlyDamagedByCloud) {
+        this.loseConcentration(10); // Schaden
+        this.recentlyDamagedByCloud = true;
+
+        // Cooldownn
+        this.time.delayedCall(1000, () => {
+          this.recentlyDamagedByCloud = false;
+        });
+      }
+    });
   }
 
 }

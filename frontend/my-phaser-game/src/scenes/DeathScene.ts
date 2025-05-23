@@ -56,8 +56,8 @@ export default class DeathScene extends Phaser.Scene {
                 window.location.href = "lobby.html";
             });
 
-        // Optional: Automatischer Disconnect nach Zeitüberschreitung
-        this.time.delayedCall(30000, () => { // Nach 30 Sekunden
+        // Automatischer Disconnect nach Zeitüberschreitung
+        this.time.delayedCall(10000, () => { // Nach 10 Sekunden
             if (this.socket.connected) {
                 this.socket.disconnect();
                 window.location.href = "lobby.html";

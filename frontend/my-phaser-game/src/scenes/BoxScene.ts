@@ -437,6 +437,9 @@ export default class BoxScene extends Phaser.Scene {
     this.box.setAngle(90);
     this.isGameOver = true;
     this.socket.emit("playerDead", { angle: 90 });
+
+    this.scene.launch("DeathScene", { socket: this.socket , kills: this.kills});
+    this.socket.emit("playerDead");
   }
 
   update() {

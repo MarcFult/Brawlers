@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import BoxScene from '../scenes/BoxScene';
 import MapSelectScene from "../scenes/MapSelectScene.ts";
 import SkinSelectScene from "../scenes/SkinSelectScene.ts";
+import DeathScene from "../scenes/DeathScene.ts";
 
 
 const Game: React.FC = () => {
@@ -20,7 +21,7 @@ const Game: React.FC = () => {
           debug: false
         }
       },
-      scene: [MapSelectScene, SkinSelectScene,BoxScene]
+      scene: [MapSelectScene, SkinSelectScene,BoxScene, DeathScene]
     };
 
     const game = new Phaser.Game(config);

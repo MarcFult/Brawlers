@@ -267,6 +267,7 @@ export default class BoxScene extends Phaser.Scene {
     this.socket.on("updateKills", (data: any) => {
       this.kills = Math.floor(data.kills / 2);
       this.killText.setText(`${Math.max(0, this.kills)}`);
+      this.checkWinCondition();
     });
 
     this.concentrationSprite = this.add.image(470, 100, "con_100").setScrollFactor(0).setScale(0.5);
@@ -442,6 +443,21 @@ export default class BoxScene extends Phaser.Scene {
     this.socket.emit("playerDead");
   }
 
+  showWinScreen() {
+    // 1. Spiel pausieren
+    this.physics.pause();
+    this.box.setActive(false);
+
+    // 2. WinScene starten
+    this.scene.launch("WinScene", {
+      socket: this.socket,
+      kills: this.kills
+    });
+
+    // 3. Server informieren
+    this.socket.emit("playerWon");
+  }
+
   update() {
     if (this.isGameOver) return;
 
@@ -516,7 +532,9 @@ export default class BoxScene extends Phaser.Scene {
     });
   }
 
-  private addOtherPlayer(data: any) {
+
+
+    private addOtherPlayer(data: any) {
     try {
       if (this.otherPlayers.has(data.id)) return;
 
@@ -607,6 +625,14 @@ export default class BoxScene extends Phaser.Scene {
         });
       }
     });
+  }
+  private checkWinCondition() {
+    const killLimit = this.otherPlayers.size;
+
+    // Wenn Kill-Limit erreicht
+    if (this.kills >= killLimit) {
+      this.showWinScreen();
+    }
   }
 
 }

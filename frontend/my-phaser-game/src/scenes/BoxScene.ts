@@ -24,7 +24,8 @@ export default class BoxScene extends Phaser.Scene {
   private bgMusic: Phaser.Sound.BaseSound;
   private recentlyDamagedByCloud: boolean = false;
 
-
+  private otherPlayerConcentrationSprites = new Map<string, Phaser.GameObjects.Sprite>();
+  private otherPlayerConcentrationValues = new Map<string, number>();
 
   private socket!: Socket;
   private otherPlayers: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
@@ -108,8 +109,8 @@ export default class BoxScene extends Phaser.Scene {
       runChildUpdate: true
     });
 
-    this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
-    // this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
+    //this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
+    this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
 
     //const socketHost = window.location.hostname;
     //this.socket = io(`http://${socketHost}:3001`, { query: { lobbyId: this.lobbyId } });
@@ -178,6 +179,13 @@ export default class BoxScene extends Phaser.Scene {
         other.destroy();
         this.otherPlayers.delete(id);
       }
+
+      const conSprite = this.otherPlayerConcentrationSprites.get(id);
+      if (conSprite) {
+        conSprite.destroy();
+        this.otherPlayerConcentrationSprites.delete(id);
+        this.otherPlayerConcentrationValues.delete(id);
+      }
     });
 
     this.socket.on("playerShot", (data: any) => {
@@ -224,17 +232,24 @@ export default class BoxScene extends Phaser.Scene {
       if (data.targetId === this.socket.id) return;
 
       if (hitPlayer) {
+        // Aktualisiere den Concentration-Wert
+        this.otherPlayerConcentrationValues.set(data.targetId, data.newConcentration);
+
+        // Aktualisiere die Anzeige
+        this.updateConcentrationSpriteForOtherPlayer(
+            data.targetId,
+            data.newConcentration);
+
+        // Farbanimation (optional)
         this.tweens.addCounter({
           from: 0,
           to: 1,
           duration: 500,
           onUpdate: tween => {
             const value = tween.getValue();
-
-            const r = Math.floor(255 * (1 - value));
-            const g = Math.floor(255 * (1 - value));
-            const b = Math.floor(139 + (255 - 139) * (1 - value));
-
+            const r = Math.floor(255 + (84 - 255) * value);
+            const g = Math.floor(255 + (131 - 255) * value);
+            const b = Math.floor(255 + (234 - 255) * value);
             const color = (r << 16) + (g << 8) + b;
             hitPlayer.setTint(color);
           }
@@ -339,6 +354,13 @@ export default class BoxScene extends Phaser.Scene {
       });
     }
 
+    // Position der Concentration-Sprites aktualisieren
+    this.otherPlayerConcentrationSprites.forEach((conSprite, playerId) => {
+      const player = this.otherPlayers.get(playerId);
+      if (player) {
+        conSprite.setPosition(player.x, player.y + 40);
+      }
+    });
   }
 
   shootBullet() {
@@ -397,8 +419,6 @@ export default class BoxScene extends Phaser.Scene {
     this.time.delayedCall(2000, () => bullet.destroy());
   }
 
-
-
   loseConcentration(amount: number) {
     this.concentration = Math.max(0, this.concentration - amount);
     this.updateConcentrationSprite();
@@ -413,7 +433,7 @@ export default class BoxScene extends Phaser.Scene {
 
   handleGameOver() {
     this.box.setActive(false).setVisible(true);
-    this.box.setTint(0xff0000);
+    this.box.setTint(0x7da6ff);
     this.box.setAngle(90);
     this.isGameOver = true;
     this.socket.emit("playerDead", { angle: 90 });
@@ -485,28 +505,32 @@ export default class BoxScene extends Phaser.Scene {
       window.open(ytUrl, "_blank");
     }
 
+    this.otherPlayers.forEach((playerSprite, id) => {
+      const conSprite = this.otherPlayerConcentrationSprites.get(id);
+      if (conSprite) {
+        conSprite.setPosition(playerSprite.x, playerSprite.y - 60);
+      }
+    });
   }
 
   private addOtherPlayer(data: any) {
     try {
-      if (this.otherPlayers.has(data.id)) {
-        return;
-      }
+      if (this.otherPlayers.has(data.id)) return;
 
       const textureKey = `${data.skin}_${data.dir || 'front'}`;
+      if (!this.textures.exists(textureKey)) return;
 
-      if (!this.textures.exists(textureKey)) {
-        return;
-      }
-
+      // Gegner-Sprite erstellen
       const sprite = this.physics.add.sprite(data.x, data.y, textureKey);
       this.otherPlayers.set(data.id, sprite);
 
-      console.log("Erfolgreich erstellt:", sprite);
+      const conSprite = this.add.sprite(data.x, data.y - 60, "con_100").setScale(0.5);
+
+      this.otherPlayerConcentrationSprites.set(data.id, conSprite);
+      this.otherPlayerConcentrationValues.set(data.id, 100);
+
     } catch (error) {
       console.error("Fehler beim Erstellen:", error);
-    } finally {
-      console.groupEnd();
     }
   }
 
@@ -543,6 +567,26 @@ export default class BoxScene extends Phaser.Scene {
     }
     this.concentrationSprite.setTexture(key);
   }
+
+  private updateConcentrationSpriteForOtherPlayer(playerId: string, concentration: number, newHit: boolean = true) {
+
+    const conSprite = this.otherPlayerConcentrationSprites.get(playerId);
+    if (!conSprite) return;
+
+    if (concentration > 75) {
+      conSprite.setTexture("con_100");
+    } else if (concentration > 50) {
+      conSprite.setTexture("con_75");
+    } else if (concentration > 25) {
+      conSprite.setTexture("con_50");
+    } else if (concentration > 0) {
+      conSprite.setTexture("con_25");
+    } else {
+      conSprite.setTexture("con_0")
+    }
+    console.log(`--> Set sprite to:`, conSprite, `(concentration: ${concentration})`);
+  }
+
 
   private spawnDamageCloud() {
     const cloud = this.physics.add.staticImage(570, 550, "cloud") // Position anpassen

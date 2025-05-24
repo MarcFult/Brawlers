@@ -80,6 +80,10 @@ export default class BoxScene extends Phaser.Scene {
       this.load.image(`${skin}_left`, `src/assets/char/${skin}_left.png`);
       this.load.image(`${skin}_right`, `src/assets/char/${skin}_right.png`);
     }
+
+    this.load.image("alien_bullet", `src/assets/char/alien_bullet.png`);
+    this.load.image("fox_bullet", `src/assets/char/fox_bullet.png`);
+
   }
 
   create() {
@@ -387,7 +391,21 @@ export default class BoxScene extends Phaser.Scene {
   shootBullet() {
     if (this.isGameOver) return; //tote dürfen nicht schießen
 
-    const bullet = this.playerBullets.create(this.box.x, this.box.y, "bullet") as Phaser.Physics.Arcade.Image;
+    let bulletTexture = 'bullet';
+
+    switch (this.selectedSkin) {
+      case 'alien':
+         bulletTexture = "alien_bullet";
+         break;
+
+      case 'fox':
+         bulletTexture = "fox_bullet";
+         break;
+
+    }
+
+
+    const bullet = this.playerBullets.create(this.box.x, this.box.y, bulletTexture) as Phaser.Physics.Arcade.Image;
     if (!bullet) return;
 
     bullet.setActive(true).setVisible(true).setCollideWorldBounds(true);

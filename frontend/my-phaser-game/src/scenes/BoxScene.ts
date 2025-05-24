@@ -50,7 +50,7 @@ export default class BoxScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("bullet", 'src/assets/test_bullet.png')
+    this.load.image("bullet", 'src/assets/bullet.png')
 
     //maps
     this.load.image("test_map", 'src/assets/roomSB.png')
@@ -278,6 +278,8 @@ export default class BoxScene extends Phaser.Scene {
     this.concentrationSprite = this.add.image(470, 100, "con_100").setScrollFactor(0).setScale(0.5);
 
     if (this.selectedMap === "second_map") {
+      this.healZone = this.physics.add.staticImage(1012, 243, "healZone").setVisible(false);
+
       const tableBorders = this.physics.add.staticGroup();
 
       tableBorders.create(570, 497, null)
@@ -302,6 +304,8 @@ export default class BoxScene extends Phaser.Scene {
     }
 
     if (this.selectedMap == "third_map"){
+      this.healZone = this.physics.add.staticImage(850, 243, "healZone").setVisible(false);
+
       const tableBorders = this.physics.add.staticGroup();
 
       tableBorders.create(280, 600)
@@ -354,8 +358,6 @@ export default class BoxScene extends Phaser.Scene {
 
     this.physics.add.collider(this.box, this.otherPlayersGroup);
 
-    this.healZone = this.physics.add.staticImage(1012, 243, "healZone").setVisible(false);
-
     this.socket.emit("createLobby", { name: "test", maxPlayers: 4 }, (response) => { // nix damit machen ansonsten kaputt
       if (response.success) {
         console.log("Lobby erstellt mit ID:", response.lobbyId);
@@ -401,12 +403,13 @@ export default class BoxScene extends Phaser.Scene {
       case 'fox':
          bulletTexture = "fox_bullet";
          break;
-
     }
-
 
     const bullet = this.playerBullets.create(this.box.x, this.box.y, bulletTexture) as Phaser.Physics.Arcade.Image;
     if (!bullet) return;
+
+    const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
+    bullet.setTint(Phaser.Utils.Array.GetRandom(colors));
 
     bullet.setActive(true).setVisible(true).setCollideWorldBounds(true);
 

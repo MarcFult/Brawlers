@@ -3,7 +3,7 @@ import Phaser from "phaser";
 export default class SkinSelectScene extends Phaser.Scene {
   private selectedSkin: string = "char1";
   private selectedMap: string;
-  private skins: string[] = ["char1", "ralph", "pepe", "Peter_H", "caretaker"];
+  private skins: string[] = ["ralph", "pepe", "Peter_H", "caretaker", "fox", "alien"];
 
   constructor() {
     super({ key: "SkinSelectScene" });

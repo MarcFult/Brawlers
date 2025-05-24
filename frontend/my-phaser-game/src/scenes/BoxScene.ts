@@ -57,6 +57,7 @@ export default class BoxScene extends Phaser.Scene {
     this.load.image("first_map", 'src/assets/first_map.png')
     this.load.image("second_map", 'src/assets/second_map.png')
     this.load.image("third_map", 'src/assets/third_map.png')
+    this.load.image("ah", 'src/assets/ah.png')
     //concentration
     this.load.image("con_0", "src/assets/con_0.png");
     this.load.image("con_25", "src/assets/con_25.png");
@@ -71,7 +72,7 @@ export default class BoxScene extends Phaser.Scene {
     this.load.audio("bgMusic", "src/assets/back.mp3");
 
     //Skins
-    const skins = ["char1", "ralph", "pepe", "Peter_H", "caretaker"];
+    const skins = ["char1", "ralph", "pepe", "Peter_H", "caretaker", "fox", "alien"];
 
     for (const skin of skins) {
       this.load.image(`${skin}_front`, `src/assets/char/${skin}_front.png`);
@@ -313,6 +314,25 @@ export default class BoxScene extends Phaser.Scene {
           .setDisplaySize(95, 435)
           .refreshBody()
           .setVisible();
+
+      this.physics.add.collider(this.box, tableBorders);
+      this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());
+      this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
+    }
+
+    if (this.selectedMap == "ah"){
+      const tableBorders = this.physics.add.staticGroup();
+
+      tableBorders.create(150, 600)
+          .setDisplaySize(20, 570)
+          .refreshBody()
+          .setVisible();
+
+      tableBorders.create(970, 600)
+          .setDisplaySize(20, 700)
+          .refreshBody()
+          .setVisible();
+
 
       this.physics.add.collider(this.box, tableBorders);
       this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());

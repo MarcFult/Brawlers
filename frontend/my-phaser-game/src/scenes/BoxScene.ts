@@ -24,7 +24,8 @@ export default class BoxScene extends Phaser.Scene {
   private bgMusic: Phaser.Sound.BaseSound;
   private recentlyDamagedByCloud: boolean = false;
 
-
+  private otherPlayerConcentrationSprites = new Map<string, Phaser.GameObjects.Sprite>();
+  private otherPlayerConcentrationValues = new Map<string, number>();
 
   private socket!: Socket;
   private otherPlayers: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
@@ -49,13 +50,14 @@ export default class BoxScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("bullet", 'src/assets/test_bullet.png')
+    this.load.image("bullet", 'src/assets/bullet.png')
 
     //maps
     this.load.image("test_map", 'src/assets/roomSB.png')
     this.load.image("first_map", 'src/assets/first_map.png')
     this.load.image("second_map", 'src/assets/second_map.png')
     this.load.image("third_map", 'src/assets/third_map.png')
+    this.load.image("ah", 'src/assets/ah.png')
     //concentration
     this.load.image("con_0", "src/assets/con_0.png");
     this.load.image("con_25", "src/assets/con_25.png");
@@ -70,7 +72,7 @@ export default class BoxScene extends Phaser.Scene {
     this.load.audio("bgMusic", "src/assets/back.mp3");
 
     //Skins
-    const skins = ["char1", "ralph", "pepe", "Peter_H", "caretaker"];
+    const skins = ["char1", "ralph", "pepe", "Peter_H", "caretaker", "fox", "alien"];
 
     for (const skin of skins) {
       this.load.image(`${skin}_front`, `src/assets/char/${skin}_front.png`);
@@ -78,6 +80,10 @@ export default class BoxScene extends Phaser.Scene {
       this.load.image(`${skin}_left`, `src/assets/char/${skin}_left.png`);
       this.load.image(`${skin}_right`, `src/assets/char/${skin}_right.png`);
     }
+
+    this.load.image("alien_bullet", `src/assets/char/alien_bullet.png`);
+    this.load.image("fox_bullet", `src/assets/char/fox_bullet.png`);
+
   }
 
   create() {
@@ -108,8 +114,8 @@ export default class BoxScene extends Phaser.Scene {
       runChildUpdate: true
     });
 
-    this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
-    // this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
+    //this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
+    this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
 
     //const socketHost = window.location.hostname;
     //this.socket = io(`http://${socketHost}:3001`, { query: { lobbyId: this.lobbyId } });
@@ -178,6 +184,13 @@ export default class BoxScene extends Phaser.Scene {
         other.destroy();
         this.otherPlayers.delete(id);
       }
+
+      const conSprite = this.otherPlayerConcentrationSprites.get(id);
+      if (conSprite) {
+        conSprite.destroy();
+        this.otherPlayerConcentrationSprites.delete(id);
+        this.otherPlayerConcentrationValues.delete(id);
+      }
     });
 
     this.socket.on("playerShot", (data: any) => {
@@ -224,17 +237,24 @@ export default class BoxScene extends Phaser.Scene {
       if (data.targetId === this.socket.id) return;
 
       if (hitPlayer) {
+        // Aktualisiere den Concentration-Wert
+        this.otherPlayerConcentrationValues.set(data.targetId, data.newConcentration);
+
+        // Aktualisiere die Anzeige
+        this.updateConcentrationSpriteForOtherPlayer(
+            data.targetId,
+            data.newConcentration);
+
+        // Farbanimation (optional)
         this.tweens.addCounter({
           from: 0,
           to: 1,
           duration: 500,
           onUpdate: tween => {
             const value = tween.getValue();
-
-            const r = Math.floor(255 * (1 - value));
-            const g = Math.floor(255 * (1 - value));
-            const b = Math.floor(139 + (255 - 139) * (1 - value));
-
+            const r = Math.floor(255 + (84 - 255) * value);
+            const g = Math.floor(255 + (131 - 255) * value);
+            const b = Math.floor(255 + (234 - 255) * value);
             const color = (r << 16) + (g << 8) + b;
             hitPlayer.setTint(color);
           }
@@ -252,11 +272,14 @@ export default class BoxScene extends Phaser.Scene {
     this.socket.on("updateKills", (data: any) => {
       this.kills = Math.floor(data.kills / 2);
       this.killText.setText(`${Math.max(0, this.kills)}`);
+      this.checkWinCondition();
     });
 
     this.concentrationSprite = this.add.image(470, 100, "con_100").setScrollFactor(0).setScale(0.5);
 
     if (this.selectedMap === "second_map") {
+      this.healZone = this.physics.add.staticImage(1012, 243, "healZone").setVisible(false);
+
       const tableBorders = this.physics.add.staticGroup();
 
       tableBorders.create(570, 497, null)
@@ -281,6 +304,8 @@ export default class BoxScene extends Phaser.Scene {
     }
 
     if (this.selectedMap == "third_map"){
+      this.healZone = this.physics.add.staticImage(850, 243, "healZone").setVisible(false);
+
       const tableBorders = this.physics.add.staticGroup();
 
       tableBorders.create(280, 600)
@@ -303,6 +328,25 @@ export default class BoxScene extends Phaser.Scene {
       this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
     }
 
+    if (this.selectedMap == "ah"){
+      const tableBorders = this.physics.add.staticGroup();
+
+      tableBorders.create(150, 600)
+          .setDisplaySize(20, 570)
+          .refreshBody()
+          .setVisible();
+
+      tableBorders.create(970, 600)
+          .setDisplaySize(20, 700)
+          .refreshBody()
+          .setVisible();
+
+
+      this.physics.add.collider(this.box, tableBorders);
+      this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());
+      this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
+    }
+
     this.nameText = this.add.text(this.box.x, this.box.y - 60, 'YOU', {
       fontSize: '14px',
       fontStyle: 'bold',
@@ -313,8 +357,6 @@ export default class BoxScene extends Phaser.Scene {
     this.otherPlayersGroup = this.physics.add.group();
 
     this.physics.add.collider(this.box, this.otherPlayersGroup);
-
-    this.healZone = this.physics.add.staticImage(1012, 243, "healZone").setVisible(false);
 
     this.socket.emit("createLobby", { name: "test", maxPlayers: 4 }, (response) => { // nix damit machen ansonsten kaputt
       if (response.success) {
@@ -339,13 +381,35 @@ export default class BoxScene extends Phaser.Scene {
       });
     }
 
+    // Position der Concentration-Sprites aktualisieren
+    this.otherPlayerConcentrationSprites.forEach((conSprite, playerId) => {
+      const player = this.otherPlayers.get(playerId);
+      if (player) {
+        conSprite.setPosition(player.x, player.y + 40);
+      }
+    });
   }
 
   shootBullet() {
     if (this.isGameOver) return; //tote dürfen nicht schießen
 
-    const bullet = this.playerBullets.create(this.box.x, this.box.y, "bullet") as Phaser.Physics.Arcade.Image;
+    let bulletTexture = 'bullet';
+
+    switch (this.selectedSkin) {
+      case 'alien':
+         bulletTexture = "alien_bullet";
+         break;
+
+      case 'fox':
+         bulletTexture = "fox_bullet";
+         break;
+    }
+
+    const bullet = this.playerBullets.create(this.box.x, this.box.y, bulletTexture) as Phaser.Physics.Arcade.Image;
     if (!bullet) return;
+
+    const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
+    bullet.setTint(Phaser.Utils.Array.GetRandom(colors));
 
     bullet.setActive(true).setVisible(true).setCollideWorldBounds(true);
 
@@ -397,8 +461,6 @@ export default class BoxScene extends Phaser.Scene {
     this.time.delayedCall(2000, () => bullet.destroy());
   }
 
-
-
   loseConcentration(amount: number) {
     this.concentration = Math.max(0, this.concentration - amount);
     this.updateConcentrationSprite();
@@ -413,10 +475,28 @@ export default class BoxScene extends Phaser.Scene {
 
   handleGameOver() {
     this.box.setActive(false).setVisible(true);
-    this.box.setTint(0xff0000);
+    this.box.setTint(0x7da6ff);
     this.box.setAngle(90);
     this.isGameOver = true;
     this.socket.emit("playerDead", { angle: 90 });
+
+    this.scene.launch("DeathScene", { socket: this.socket , kills: this.kills});
+    this.socket.emit("playerDead");
+  }
+
+  showWinScreen() {
+    // 1. Spiel pausieren
+    this.physics.pause();
+    this.box.setActive(false);
+
+    // 2. WinScene starten
+    this.scene.launch("WinScene", {
+      socket: this.socket,
+      kills: this.kills
+    });
+
+    // 3. Server informieren
+    this.socket.emit("playerWon");
   }
 
   update() {
@@ -485,28 +565,34 @@ export default class BoxScene extends Phaser.Scene {
       window.open(ytUrl, "_blank");
     }
 
+    this.otherPlayers.forEach((playerSprite, id) => {
+      const conSprite = this.otherPlayerConcentrationSprites.get(id);
+      if (conSprite) {
+        conSprite.setPosition(playerSprite.x, playerSprite.y - 60);
+      }
+    });
   }
 
-  private addOtherPlayer(data: any) {
+
+
+    private addOtherPlayer(data: any) {
     try {
-      if (this.otherPlayers.has(data.id)) {
-        return;
-      }
+      if (this.otherPlayers.has(data.id)) return;
 
       const textureKey = `${data.skin}_${data.dir || 'front'}`;
+      if (!this.textures.exists(textureKey)) return;
 
-      if (!this.textures.exists(textureKey)) {
-        return;
-      }
-
+      // Gegner-Sprite erstellen
       const sprite = this.physics.add.sprite(data.x, data.y, textureKey);
       this.otherPlayers.set(data.id, sprite);
 
-      console.log("Erfolgreich erstellt:", sprite);
+      const conSprite = this.add.sprite(data.x, data.y - 60, "con_100").setScale(0.5);
+
+      this.otherPlayerConcentrationSprites.set(data.id, conSprite);
+      this.otherPlayerConcentrationValues.set(data.id, 100);
+
     } catch (error) {
       console.error("Fehler beim Erstellen:", error);
-    } finally {
-      console.groupEnd();
     }
   }
 
@@ -544,6 +630,26 @@ export default class BoxScene extends Phaser.Scene {
     this.concentrationSprite.setTexture(key);
   }
 
+  private updateConcentrationSpriteForOtherPlayer(playerId: string, concentration: number, newHit: boolean = true) {
+
+    const conSprite = this.otherPlayerConcentrationSprites.get(playerId);
+    if (!conSprite) return;
+
+    if (concentration > 75) {
+      conSprite.setTexture("con_100");
+    } else if (concentration > 50) {
+      conSprite.setTexture("con_75");
+    } else if (concentration > 25) {
+      conSprite.setTexture("con_50");
+    } else if (concentration > 0) {
+      conSprite.setTexture("con_25");
+    } else {
+      conSprite.setTexture("con_0")
+    }
+    console.log(`--> Set sprite to:`, conSprite, `(concentration: ${concentration})`);
+  }
+
+
   private spawnDamageCloud() {
     const cloud = this.physics.add.staticImage(570, 550, "cloud") // Position anpassen
         .setDisplaySize(300, 300) // größe
@@ -560,6 +666,14 @@ export default class BoxScene extends Phaser.Scene {
         });
       }
     });
+  }
+  private checkWinCondition() {
+    const killLimit = this.otherPlayers.size;
+
+    // Wenn Kill-Limit erreicht
+    if (this.kills >= killLimit) {
+      this.showWinScreen();
+    }
   }
 
 }

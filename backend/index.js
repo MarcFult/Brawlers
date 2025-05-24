@@ -6,10 +6,10 @@ const express = require("express");
 const server = http.createServer();
 const io = new Server(server, {
   cors: {
-    origin: "http://10.0.40.186:5173",
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"],
   },
-});
+}); // http://10.0.40.186:5173
 const lobbyManager = new LobbyManager(io);
 
 

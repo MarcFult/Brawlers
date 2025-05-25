@@ -4,7 +4,7 @@ class GameLobby {
         this.name = name;
         this.maxPlayers = maxPlayers;
         this.io = io;
-        this.players = {};
+        this.players = new Map();
     }
 
     addPlayer(socket) {
@@ -55,10 +55,29 @@ class GameLobby {
         socket.on("playerHit", ({ shooterId, targetId }) => {
             const target = this.players[targetId];
             if (target) {
+                // 1. Schaden berechnen
+                const damage = 25;
+                target.concentration = Math.max(0, (target.concentration || 100) - damage);
                 target.lastHitBy = shooterId;
-                this.io.to(this.id).emit("playerWasHit", { targetId });
+
+                // 2. An alle Spieler senden
+                this.io.to(this.id).emit("playerWasHit", {
+                    targetId,
+                    newConcentration: target.concentration // WICHTIG: Neuer Wert
+                });
+
+                // 3. Bestätigungen senden
                 this.io.to(shooterId).emit("hitConfirmed", { targetId });
-                this.io.to(targetId).emit("playerDamaged", { damage: 25 });
+                this.io.to(targetId).emit("playerDamaged", { damage });
+
+                // 4. Bei 0 Concentration: Spieler töten
+                if (target.concentration <= 0) {
+                    this.io.to(targetId).emit("youAreDead");
+                    this.io.to(this.id).emit("playerDied", {
+                        id: targetId,
+                        angle: 90
+                    });
+                }
             }
         });
 

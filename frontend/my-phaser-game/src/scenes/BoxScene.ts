@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { io, Socket } from "socket.io-client";
+import {data} from "autoprefixer";
 
 export default class BoxScene extends Phaser.Scene {
   private box!: Phaser.Physics.Arcade.Sprite;
@@ -114,7 +115,7 @@ export default class BoxScene extends Phaser.Scene {
       runChildUpdate: true
     });
 
-    //this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
+    // this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
     this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
 
     //const socketHost = window.location.hostname;
@@ -195,10 +196,14 @@ export default class BoxScene extends Phaser.Scene {
 
     this.socket.on("playerShot", (data: any) => {
       const shooter = this.otherPlayers.get(data.id);
+      const bulletTexture = this.getBulletTexture(data.shooterSkin);
       if (!shooter) return;
 
-      const bullet = this.enemyBullets.create(data.x, data.y, "bullet") as Phaser.Physics.Arcade.Image;
+      const bullet = this.enemyBullets.create(data.x, data.y, bulletTexture) as Phaser.Physics.Arcade.Image;
       (bullet as any).shooterId = data.id;
+
+      const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
+      bullet.setTintFill(Phaser.Utils.Array.GetRandom(colors));
 
       bullet.setActive(true).setVisible(true).setCollideWorldBounds(true);
       bullet.setVelocity(data.velocity.x, data.velocity.y);
@@ -388,28 +393,18 @@ export default class BoxScene extends Phaser.Scene {
         conSprite.setPosition(player.x, player.y + 40);
       }
     });
+
   }
 
   shootBullet() {
     if (this.isGameOver) return; //tote dürfen nicht schießen
 
-    let bulletTexture = 'bullet';
-
-    switch (this.selectedSkin) {
-      case 'alien':
-         bulletTexture = "alien_bullet";
-         break;
-
-      case 'fox':
-         bulletTexture = "fox_bullet";
-         break;
-    }
-
+    const bulletTexture = this.getBulletTexture(this.selectedSkin);
     const bullet = this.playerBullets.create(this.box.x, this.box.y, bulletTexture) as Phaser.Physics.Arcade.Image;
     if (!bullet) return;
 
     const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
-    bullet.setTint(Phaser.Utils.Array.GetRandom(colors));
+    bullet.setTintFill(Phaser.Utils.Array.GetRandom(colors));
 
     bullet.setActive(true).setVisible(true).setCollideWorldBounds(true);
 
@@ -455,7 +450,8 @@ export default class BoxScene extends Phaser.Scene {
     this.socket.emit("playerShot", {
       x: this.box.x,
       y: this.box.y,
-      velocity: { x: velocity.x, y: velocity.y }
+      velocity: { x: velocity.x, y: velocity.y },
+      shooterSkin: this.selectedSkin
     });
 
     this.time.delayedCall(2000, () => bullet.destroy());
@@ -557,8 +553,16 @@ export default class BoxScene extends Phaser.Scene {
       if (this.concentration < 100) {
         this.concentration += 0.1;
         this.updateConcentrationSprite();
+        this.socket.emit("playerHealed", 0,1)
+
       }
     }
+
+    this.socket.on("playerWasHealed", (data: { playerId: string, newConcentration: number }) => {
+      if (data.playerId !== this.socket.id) {
+        this.updateConcentrationSpriteForOtherPlayer(data.playerId, data.newConcentration, false);
+      }
+    });
 
     if (Phaser.Input.Keyboard.JustDown(this.rKey)) {
       const ytUrl = "https://www.youtube.com/watch?v=YAgJ9XugGBo";
@@ -572,8 +576,6 @@ export default class BoxScene extends Phaser.Scene {
       }
     });
   }
-
-
 
     private addOtherPlayer(data: any) {
     try {
@@ -673,6 +675,14 @@ export default class BoxScene extends Phaser.Scene {
     // Wenn Kill-Limit erreicht
     if (this.kills >= killLimit) {
       this.showWinScreen();
+    }
+  }
+  private getBulletTexture(skin: string): string {
+    switch(skin) {
+      case 'alien': return 'alien_bullet';
+      case 'fox': return 'fox_bullet';
+      case 'robot': return 'robot_bullet';
+      default: return 'bullet';
     }
   }
 

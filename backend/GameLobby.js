@@ -48,6 +48,9 @@ class GameLobby {
 
         socket.on("playerShot", (data) => {
             const player = this.players[socket.id];
+            const shooter = this.players[socket.id];
+            data.shooterSkin = shooter?.skin || 'default';
+
             if (!player || !player.alive) return;
             socket.to(this.id).emit("playerShot", { id: socket.id, ...data });
         });
@@ -99,6 +102,17 @@ class GameLobby {
         socket.on("disconnect", () => {
             this.removePlayer(socket.id);
             this.io.to(this.id).emit("playerDisconnected", socket.id);
+        });
+
+        socket.on("playerHealed", (amount) => {
+            const player = this.players[socket.id];
+            if (player) {
+                player.concentration = Math.min(100, (player.concentration || 100) + amount);
+                this.io.to(this.id).emit("playerWasHealed", {
+                    playerId: socket.id,
+                    newConcentration: player.concentration
+                });
+            }
         });
     }
 

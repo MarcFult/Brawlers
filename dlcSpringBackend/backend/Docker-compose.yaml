@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:latest
+    container_name: squirter
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: squirter
+      POSTGRES_PASSWORD: squirt123
+      POSTGRES_DB: brawlingdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  authentification:
+    build:
+      context: ./authentification
+      dockerfile: Dockerfile
+    container_name: authentification
+    restart: on-failure
+    ports:
+      - "8081:8081" # host:container
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/brawlingdb
+      SPRING_DATASOURCE_USERNAME: squirter
+      SPRING_DATASOURCE_PASSWORD: squirt123
+      SERVER_PORT: 8081 # override if not set in YAML
+
+  player-service:
+    build:
+      context: ./playerService
+      dockerfile: Dockerfile
+    container_name: player-service
+    restart: on-failure
+    ports:
+      - "8082:8080" # host:container
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/brawlingdb
+      SPRING_DATASOURCE_USERNAME: squirter
+      SPRING_DATASOURCE_PASSWORD: squirt123
+      # if you want to override the default 8080 inside the container:
+      # SERVER_PORT: 8080
+
+  api-gateway:
+    build:
+      context: ./API-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    restart: on-failure
+    ports:
+      - "8080:8080" # host:container
+    depends_on:
+      - authentification
+      - player-service
+    # no DB here; it just routes to the two services above
+
+volumes:
+  postgres_data:

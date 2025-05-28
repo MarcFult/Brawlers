@@ -68,18 +68,19 @@ public class SecurityConfig {
     }
 
     // 5) CORS for React
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of("http://localhost:3000", "http://10.0.40.186"));
-        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*"));
-        cfg.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
-        src.registerCorsConfiguration("/auth/**", cfg);
-        src.registerCorsConfiguration("/users/**", cfg);
-        return src;
-    }
+    // @Bean
+    // CorsConfigurationSource corsConfigurationSource() {
+    // CorsConfiguration cfg = new CorsConfiguration();
+    // cfg.setAllowedOrigins(List.of("http://localhost:3000", "http://10.0.40.186",
+    // "http://localhost:5176"));
+    // cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    // cfg.setAllowedHeaders(List.of("*"));
+    // cfg.setAllowCredentials(true);
+    // UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
+    // src.registerCorsConfiguration("/auth/**", cfg);
+    // src.registerCorsConfiguration("/users/**", cfg);
+    // return src;
+    // }
 
     // 6) Main HTTP security
     @Bean

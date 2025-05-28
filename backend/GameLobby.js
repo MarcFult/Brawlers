@@ -4,7 +4,7 @@ class GameLobby {
         this.name = name;
         this.maxPlayers = maxPlayers;
         this.io = io;
-        this.players = {};
+        this.players = new Map();
     }
 
     addPlayer(socket) {
@@ -48,6 +48,9 @@ class GameLobby {
 
         socket.on("playerShot", (data) => {
             const player = this.players[socket.id];
+            const shooter = this.players[socket.id];
+            data.shooterSkin = shooter?.skin || 'default';
+
             if (!player || !player.alive) return;
             socket.to(this.id).emit("playerShot", { id: socket.id, ...data });
         });
@@ -55,10 +58,29 @@ class GameLobby {
         socket.on("playerHit", ({ shooterId, targetId }) => {
             const target = this.players[targetId];
             if (target) {
+                // 1. Schaden berechnen
+                const damage = 25;
+                target.concentration = Math.max(0, (target.concentration || 100) - damage);
                 target.lastHitBy = shooterId;
-                this.io.to(this.id).emit("playerWasHit", { targetId });
+
+                // 2. An alle Spieler senden
+                this.io.to(this.id).emit("playerWasHit", {
+                    targetId,
+                    newConcentration: target.concentration // WICHTIG: Neuer Wert
+                });
+
+                // 3. Bestätigungen senden
                 this.io.to(shooterId).emit("hitConfirmed", { targetId });
-                this.io.to(targetId).emit("playerDamaged", { damage: 25 });
+                this.io.to(targetId).emit("playerDamaged", { damage });
+
+                // 4. Bei 0 Concentration: Spieler töten
+                if (target.concentration <= 0) {
+                    this.io.to(targetId).emit("youAreDead");
+                    this.io.to(this.id).emit("playerDied", {
+                        id: targetId,
+                        angle: 90
+                    });
+                }
             }
         });
 
@@ -80,6 +102,17 @@ class GameLobby {
         socket.on("disconnect", () => {
             this.removePlayer(socket.id);
             this.io.to(this.id).emit("playerDisconnected", socket.id);
+        });
+
+        socket.on("playerHealed", (amount) => {
+            const player = this.players[socket.id];
+            if (player) {
+                player.concentration = Math.min(100, (player.concentration || 100) + amount);
+                this.io.to(this.id).emit("playerWasHealed", {
+                    playerId: socket.id,
+                    newConcentration: player.concentration
+                });
+            }
         });
     }
 

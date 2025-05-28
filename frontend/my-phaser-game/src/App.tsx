@@ -7,6 +7,12 @@ import Shop from "./components/Shop.tsx";
 
 
 const App: React.FC = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);  // Update state when login is successful
+  };
+
   return (
       <Router>
     <div className="App bg-gray-100 p-4">

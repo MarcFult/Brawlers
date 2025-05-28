@@ -1,0 +1,46 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:5173"
+              - "http://localhost:5174"
+              - "http://localhost:5175"
+              - "http://10.0.40.186"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+
+      routes:
+        - id: auth
+          uri: http://authentification:8081
+          predicates:
+            - Path=/auth/**
+
+        - id: users
+          uri: http://authentification:8081
+          predicates:
+            - Path=/users
+           
+
+        - id: users-subpath
+          uri: http://authentification:8081
+          predicates:
+            - Path=/users/**
+
+        - id: player
+          uri: http://player-service:8080
+          predicates:
+            - Path=/players/**

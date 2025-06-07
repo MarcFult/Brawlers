@@ -24,7 +24,6 @@ io.on("connection", (socket) => {
 
   socket.on("joinLobby", ({ lobbyId, skin }, callback) => {
     console.log("Client tritt Lobby bei:", { lobbyId, skin });
-
     let targetLobby = null;
     for (const [id, lobby] of lobbyManager.lobbies.entries()) {
       if (id === lobbyId || lobbyId === "default") {
@@ -37,6 +36,8 @@ io.on("connection", (socket) => {
     if (!targetLobby) {
       targetLobby = lobbyManager.createLobby("Default Lobby", 4, socket);
     }
+
+    callback({ success: true }); // <<< Wichtig
 
     const result = lobbyManager.joinLobby(targetLobby, socket);
 
@@ -68,6 +69,7 @@ io.on("connection", (socket) => {
       callback({ success: false, message: result.message });
     }
   });
+
 });
 
 setInterval(() => {

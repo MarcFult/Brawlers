@@ -97,22 +97,31 @@
 <div class="section" id="waitingRoom" style="display: none;">
     <h3>Warteraum</h3>
     <p id="waitingStatus">Warte auf Spieler...</p>
-    <p id="countdown" style="font-size: 24px; color: #ff6600;"></p>
+    <p id="lobbyStatus" style="font-size: 20px; color: #aaa;"></p>
+    <p id="countdown" style="font-size: 28px; color: #ff0000; font-weight: bold;"></p>
     <button id="startGameBtn" onclick="manualStart()" style="display: none;">Manuell starten</button>
 </div>
-
 
 <script>
     const socket = io("http://localhost:3001");
     //const socket = io("http://10.0.40.186:3001");
 
-
     let currentLobbyId = null;
     let countdownTimer = null;
-    let countdownSeconds = 5;
+    let countdownSeconds = 25;
+
 
     socket.emit("getLobbies", (lobbies) => renderLobbies(lobbies));
     socket.on("lobbyListUpdate", (lobbies) => renderLobbies(lobbies));
+
+    socket.on("lobbyStatusUpdate", ({ players, maxPlayers, countdown }) => {
+        const status = document.getElementById("lobbyStatus");
+        status.innerText = `Spieler: ${players}/${maxPlayers}`;
+
+        if (typeof countdown === "number") {
+            status.innerText += ` – Spiel startet in ${countdown} Sekunden`;
+        }
+    });
 
     socket.on("lobbyUpdated", (lobby) => {
         if (lobby.id === currentLobbyId) {
@@ -149,6 +158,8 @@
         });
     }
 
+
+
     function renderLobbies(lobbies) {
         const container = document.getElementById("lobbyList");
 
@@ -176,6 +187,7 @@
 
             container.appendChild(lobbyElement);
         });
+
     }
 
     function copyLobbyId(lobbyId) {
@@ -192,6 +204,7 @@
 
         currentLobbyId = lobbyId;
         socket.emit("joinLobby", { lobbyId }, (response) => {
+            console.log("Join-Response:", response); // << DEBUG
             if (response.success) {
                 showWaitingRoom(lobbyId);
             } else {
@@ -231,7 +244,7 @@
     function startCountdown() {
         if (countdownTimer) return;
 
-        countdownSeconds = 5;
+        countdownSeconds = 25;
         document.getElementById("countdown").textContent = `Spiel startet in ${countdownSeconds}...`;
 
         countdownTimer = setInterval(() => {

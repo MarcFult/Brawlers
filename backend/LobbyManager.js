@@ -46,7 +46,6 @@ class LobbyManager {
         return this.lobbies.get(id);
     }
 
-
 }
 
 module.exports = LobbyManager;

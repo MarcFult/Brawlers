@@ -114,6 +114,12 @@ class GameLobby {
                 });
             }
         });
+        this.broadcastLobbyStatus();
+
+        if (this.playerCount() >= Math.ceil(this.maxPlayers / 2)) {
+            this.startCountdown();
+        }
+
     }
 
     removePlayer(socketId) {
@@ -131,6 +137,40 @@ class GameLobby {
     isEmpty() {
         return this.playerCount() === 0;
     }
+    startCountdown(durationInSeconds = 5) {
+        if (this._countdownInterval) return;
+
+        let timeLeft = durationInSeconds;
+        this.io.to(this.id).emit("lobbyStatusUpdate", {
+            players: this.playerCount(),
+            maxPlayers: this.maxPlayers,
+            countdown: timeLeft
+        });
+
+        this._countdownInterval = setInterval(() => {
+            timeLeft--;
+            this.io.to(this.id).emit("lobbyStatusUpdate", {
+                players: this.playerCount(),
+                maxPlayers: this.maxPlayers,
+                countdown: timeLeft
+            });
+
+            if (timeLeft <= 0) {
+                clearInterval(this._countdownInterval);
+                this._countdownInterval = null;
+                this.io.to(this.id).emit("gameStart", { lobbyId: this.id });
+            }
+        }, 1000);
+    }
+
+    broadcastLobbyStatus() {
+        this.io.to(this.id).emit("lobbyStatusUpdate", {
+            players: this.playerCount(),
+            maxPlayers: this.maxPlayers,
+            countdown: this._countdownInterval ? true : false,
+        });
+    }
+
 }
 
 module.exports = GameLobby;

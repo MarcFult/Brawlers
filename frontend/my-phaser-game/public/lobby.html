@@ -94,24 +94,55 @@
     <div id="lobbyList">Lade Lobbys...</div>
 </div>
 
+<div class="section" id="waitingRoom" style="display: none;">
+    <h3>Warteraum</h3>
+    <p id="waitingStatus">Warte auf Spieler...</p>
+    <p id="countdown" style="font-size: 24px; color: #ff6600;"></p>
+    <button id="startGameBtn" onclick="manualStart()" style="display: none;">Manuell starten</button>
+</div>
+
+
 <script>
+    const socket = io("http://localhost:3001");
     //const socket = io("http://10.0.40.186:3001");
-    const socket = io("http://localhost:3001")
+
+
+    let currentLobbyId = null;
+    let countdownTimer = null;
+    let countdownSeconds = 5;
 
     socket.emit("getLobbies", (lobbies) => renderLobbies(lobbies));
-
-    // Lobby-Updates empfangen
     socket.on("lobbyListUpdate", (lobbies) => renderLobbies(lobbies));
+
+    socket.on("lobbyUpdated", (lobby) => {
+        if (lobby.id === currentLobbyId) {
+            updateWaitingRoom(lobby);
+        }
+    });
+
+    socket.on("gameStart", ({ lobbyId }) => {
+        console.log("Spielstart für Lobby:", lobbyId);
+        // Weiterleitung zur Phaser-Game-Seite
+        window.location.href = `/index.html?lobbyId=${lobbyId}`;
+    });
+
+
+    socket.on("startGame", ({ lobbyId }) => {
+        if (lobbyId === currentLobbyId) {
+            window.location.href = `game.html?lobbyId=${encodeURIComponent(lobbyId)}`;
+        }
+    });
 
     function createLobby() {
         const maxPlayers = parseInt(document.getElementById("maxPlayers").value);
 
         socket.emit("createLobby", {
-            name: "DLC Match", // Fester Name, da wir nur die ID brauchen
+            name: "DLC Match",
             maxPlayers
         }, (response) => {
             if (response.success) {
-                joinLobby(response.lobbyId);
+                currentLobbyId = response.lobbyId;
+                showWaitingRoom(currentLobbyId);
             } else {
                 alert("Fehler: " + (response.message || "Lobby konnte nicht erstellt werden"));
             }
@@ -158,8 +189,77 @@
             alert("Ungültige Lobby-ID");
             return;
         }
-        window.location.href = `game.html?lobbyId=${encodeURIComponent(lobbyId)}`;
+
+        currentLobbyId = lobbyId;
+        socket.emit("joinLobby", { lobbyId }, (response) => {
+            if (response.success) {
+                showWaitingRoom(lobbyId);
+            } else {
+                alert("Beitritt fehlgeschlagen: " + (response.message || "Unbekannter Fehler"));
+            }
+        });
+    }
+
+    function showWaitingRoom(lobbyId) {
+        document.getElementById("waitingRoom").style.display = "block";
+        document.getElementById("waitingStatus").textContent = `Lobby-ID: ${lobbyId} – Warte auf Spieler...`;
+        document.getElementById("countdown").textContent = "";
+        document.getElementById("startGameBtn").style.display = "none";
+
+        socket.emit("getLobbies", (lobbies) => {
+            const lobby = lobbies.find(l => l.id === lobbyId);
+            if (lobby) updateWaitingRoom(lobby);
+        });
+    }
+
+    function updateWaitingRoom(lobby) {
+        document.getElementById("waitingStatus").textContent =
+            `Spieler in Lobby: ${lobby.currentPlayers}/${lobby.maxPlayers}`;
+
+        if (lobby.currentPlayers >= lobby.maxPlayers) {
+            startCountdown();
+        } else {
+            stopCountdown();
+            if (lobby.currentPlayers >= 2) {
+                document.getElementById("startGameBtn").style.display = "inline-block";
+            } else {
+                document.getElementById("startGameBtn").style.display = "none";
+            }
+        }
+    }
+
+    function startCountdown() {
+        if (countdownTimer) return;
+
+        countdownSeconds = 5;
+        document.getElementById("countdown").textContent = `Spiel startet in ${countdownSeconds}...`;
+
+        countdownTimer = setInterval(() => {
+            countdownSeconds--;
+            document.getElementById("countdown").textContent = `Spiel startet in ${countdownSeconds}...`;
+
+            if (countdownSeconds <= 0) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+                socket.emit("startGame", { lobbyId: currentLobbyId });
+            }
+        }, 1000);
+    }
+
+    function stopCountdown() {
+        if (countdownTimer) {
+            clearInterval(countdownTimer);
+            countdownTimer = null;
+            document.getElementById("countdown").textContent = "";
+        }
+    }
+
+    function manualStart() {
+        if (currentLobbyId) {
+            socket.emit("startGame", { lobbyId: currentLobbyId });
+        }
     }
 </script>
+
 </body>
 </html>

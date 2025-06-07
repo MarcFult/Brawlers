@@ -33,6 +33,7 @@ io.on("connection", (socket) => {
       }
     }
 
+    // Falls Lobby nicht gefunden, erstelle eine neue Default-Lobby
     if (!targetLobby) {
       targetLobby = lobbyManager.createLobby("Default Lobby", 4, socket);
     }
@@ -40,26 +41,41 @@ io.on("connection", (socket) => {
     const result = lobbyManager.joinLobby(targetLobby, socket);
 
     if (result.success) {
+      // Socket in Raum (Lobby) joinen
+      socket.join(targetLobby);
+
+      // Spieler über erfolgreichen Beitritt informieren
       socket.emit("lobbyJoined", {
         success: true,
         lobbyId: targetLobby,
         skin: skin
       });
+
+      // andere in der Lobby informieren
+      io.to(targetLobby).emit("playerJoined", {
+        id: socket.id,
+        skin: skin
+      });
+
+      // Sofort Status an Lobby senden
+      const lobby = lobbyManager.getLobbyById(targetLobby);
+      if (lobby) {
+        lobby.broadcastLobbyStatus();
+      }
+
     } else {
+      // Fehler zurücksenden
       callback({ success: false, message: result.message });
     }
   });
-
-
-  socket.on("getLobbies", (callback) => {
-    callback(lobbyManager.getLobbies());
-  });
-
-  socket.on("disconnect", () => {
-    lobbyManager.leaveAll(socket.id);
-    io.emit("lobbyListUpdate", lobbyManager.getLobbies());
-  });
 });
+
+setInterval(() => {
+  for (const [id, lobby] of lobbyManager.lobbies.entries()) {
+    lobby.broadcastLobbyStatus();
+  }
+}, 2000);
+
 
 server.listen(3001, () => {
   console.log("Socket.io Server läuft auf Port 3001");

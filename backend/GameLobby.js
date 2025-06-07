@@ -5,6 +5,9 @@ class GameLobby {
         this.maxPlayers = maxPlayers;
         this.io = io;
         this.players = new Map();
+        this.countdownInterval = null;
+        this.currentCountdown = null;
+
     }
 
     addPlayer(socket) {
@@ -116,9 +119,14 @@ class GameLobby {
         });
         this.broadcastLobbyStatus();
 
-        if (this.playerCount() >= Math.ceil(this.maxPlayers / 2)) {
-            this.startCountdown();
+        if (!this.countdownInterval && this.playerCount() >= Math.ceil(this.maxPlayers / 2)) {
+            this.startCountdown(25);
         }
+
+        socket.on("lobbyListUpdate", (lobbies) => {
+            renderLobbies(lobbies); // nutzt `countdown` mit
+        });
+
 
     }
 
@@ -137,27 +145,28 @@ class GameLobby {
     isEmpty() {
         return this.playerCount() === 0;
     }
-    startCountdown(durationInSeconds = 5) {
-        if (this._countdownInterval) return;
+    startCountdown(durationInSeconds = 25) {
+        if (this.countdownInterval) return;
 
-        let timeLeft = durationInSeconds;
+        this.currentCountdown = durationInSeconds;
         this.io.to(this.id).emit("lobbyStatusUpdate", {
             players: this.playerCount(),
             maxPlayers: this.maxPlayers,
-            countdown: timeLeft
+            countdown: this.currentCountdown
         });
 
-        this._countdownInterval = setInterval(() => {
-            timeLeft--;
+        this.countdownInterval = setInterval(() => {
+            this.currentCountdown--;
             this.io.to(this.id).emit("lobbyStatusUpdate", {
                 players: this.playerCount(),
                 maxPlayers: this.maxPlayers,
-                countdown: timeLeft
+                countdown: this.currentCountdown
             });
 
-            if (timeLeft <= 0) {
-                clearInterval(this._countdownInterval);
-                this._countdownInterval = null;
+            if (this.currentCountdown <= 0) {
+                clearInterval(this.countdownInterval);
+                this.countdownInterval = null;
+                this.currentCountdown = null;
                 this.io.to(this.id).emit("gameStart", { lobbyId: this.id });
             }
         }, 1000);
@@ -167,9 +176,10 @@ class GameLobby {
         this.io.to(this.id).emit("lobbyStatusUpdate", {
             players: this.playerCount(),
             maxPlayers: this.maxPlayers,
-            countdown: this._countdownInterval ? true : false,
+            countdown: this.currentCountdown // kann auch `null` sein
         });
     }
+
 
 }
 

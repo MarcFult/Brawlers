@@ -12,6 +12,7 @@ class LobbyManager {
         this.lobbies.set(id, newLobby);
         newLobby.addPlayer(creatorSocket);
         console.log(this.lobbies.keys())
+        newLobby.lobbyManager = this; // damit GameLobby Zugriff auf deleteLobby hat
         return id;
     }
 
@@ -42,7 +43,21 @@ class LobbyManager {
     _generateLobbyId() {
         return Math.random().toString(36).substr(2, 6);
     }
+    getLobbyById(id) {
+        return this.lobbies.get(id);
+    }
 
+    leaveLobby(id, socket) {
+        const lobby = this.lobbies.get(id);
+        if (!lobby) return;
+
+        lobby.removePlayer(socket);
+    }
+
+    deleteLobby(id) {
+        this.lobbies.delete(id);
+    }
+    
 }
 
 module.exports = LobbyManager;

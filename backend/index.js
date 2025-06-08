@@ -70,6 +70,16 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("getLobbies", (callback) => {
+    console.log("Server: getLobbies aufgerufen");
+
+    // Lobbys abrufen
+    const lobbies = lobbyManager.getLobbies() // oder deine Methode
+    console.log("Server: sende Lobbys zurück", lobbies);
+
+    // Rückgabe an den Client
+    callback(lobbies);
+  });
 });
 
 setInterval(() => {

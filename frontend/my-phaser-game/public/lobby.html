@@ -87,10 +87,13 @@
     <h3>Neue Lobby erstellen</h3>
     <input type="number" id="maxPlayers" placeholder="Max Spieler" value="4" min="2" max="10" />
     <button onclick="createLobby()">Lobby erstellen</button>
+
 </div>
 
 <div class="section">
     <h3>Verfügbare Lobbys</h3>
+    <button onclick="requestLobbyList()">Aktualisieren</button>
+
     <div id="lobbyList">Lade Lobbys...</div>
 </div>
 
@@ -110,7 +113,6 @@
     let countdownTimer = null;
     let countdownSeconds = 25;
 
-
     socket.emit("getLobbies", (lobbies) => renderLobbies(lobbies));
     socket.on("lobbyListUpdate", (lobbies) => renderLobbies(lobbies));
 
@@ -121,6 +123,10 @@
         if (typeof countdown === "number") {
             status.innerText += ` – Spiel startet in ${countdown} Sekunden`;
         }
+        const text = countdown != null
+            ? `Spiel startet in ${countdown} Sekunden…`
+            : `Spieler: ${players}/${maxPlayers}`;
+        document.getElementById("statusText").innerText = text;
     });
 
     socket.on("lobbyUpdated", (lobby) => {
@@ -128,6 +134,11 @@
             updateWaitingRoom(lobby);
         }
     });
+
+    socket.on("getLobbies", (callback) => {
+        callback(Array.from(lobbies.values()));
+    });
+
 
     socket.on("gameStart", ({ lobbyId }) => {
         console.log("Spielstart für Lobby:", lobbyId);
@@ -141,6 +152,32 @@
             window.location.href = `game.html?lobbyId=${encodeURIComponent(lobbyId)}`;
         }
     });
+
+    socket.on("disconnect", () => {
+        console.log("Spieler getrennt:", socket.id);
+
+        // Suche Lobby und entferne Spieler
+        for (const [id, lobby] of lobbyManager.lobbies.entries()) {
+            if (lobby.players.has(socket.id)) {
+                lobbyManager.leaveLobby(id, socket);
+                break;
+            }
+        }
+
+        io.emit("lobbyListUpdate", lobbyManager.getLobbies());
+    });
+
+    socket.on("requestLobbyList", () => {
+        const lobbyList = Array.from(this.lobbies.values()).map((lobby) => ({
+            id: lobby.id,
+            name: lobby.name,
+            players: lobby.playerCount(),
+            maxPlayers: lobby.maxPlayers
+        }));
+        socket.emit("lobbyListUpdate", lobbyList);
+    });
+
+
 
     function createLobby() {
         const maxPlayers = parseInt(document.getElementById("maxPlayers").value);
@@ -158,22 +195,18 @@
         });
     }
 
-
-
     function renderLobbies(lobbies) {
         const container = document.getElementById("lobbyList");
+        container.innerHTML = "";
 
         if (!lobbies || lobbies.length === 0) {
             container.innerHTML = "<p>Keine offenen Lobbys vorhanden.</p>";
             return;
         }
 
-        container.innerHTML = "";
-
         lobbies.forEach(lobby => {
             const lobbyElement = document.createElement("div");
             lobbyElement.className = "lobby";
-
             lobbyElement.innerHTML = `
                 <div class="lobby-info">
                     <div class="lobby-id">${lobby.id}</div>
@@ -272,6 +305,32 @@
             socket.emit("startGame", { lobbyId: currentLobbyId });
         }
     }
+
+    function handlePlayerLeaveLobby(socket, lobbyId) {
+        const lobby = lobbies.get(lobbyId);
+        if (!lobby) return;
+
+        lobby.currentPlayers--;
+
+        if (lobby.currentPlayers <= 0) {
+            // Starte 60s Timer zur Löschung
+            lobby.timeoutId = setTimeout(() => {
+                console.log(`Lobby ${lobbyId} gelöscht (inaktiv).`);
+                lobbies.delete(lobbyId);
+                io.emit("lobbyListUpdate", Array.from(lobbies.values()));
+            }, 60000); // 60 Sekunden
+        }
+
+        // Update alle Clients
+        io.emit("lobbyListUpdate", Array.from(lobbies.values()));
+    }
+
+    function requestLobbyList() {
+        console.log("Lobbys werden aktualisiert...");
+        socket.emit("getLobbies", (lobbies) => {
+        });
+    }
+
 </script>
 
 </body>

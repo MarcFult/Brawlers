@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+import type { StaticBody } from "phaser";
+
 import { io, Socket } from "socket.io-client";
 import {data} from "autoprefixer";
 
@@ -24,6 +26,25 @@ export default class BoxScene extends Phaser.Scene {
   private rKey!: Phaser.Input.Keyboard.Key | undefined;
   private bgMusic: Phaser.Sound.BaseSound;
   private recentlyDamagedByCloud: boolean = false;
+
+  private speedZone! : Phaser.GameObjects.Image;
+  private speed : number = 250;
+  private updateSpeed : any;
+  private baseSpeed: number = 250; // Start-Speed
+  private speedMultiplier: number = 1.0;
+  private speedBoostActive: boolean = false;
+
+  private shieldZone! : Phaser.GameObjects.Image;
+  private shieldCollectedRecently: boolean = false;
+  private shieldActive: boolean = false;
+  private shieldBubble!: Phaser.GameObjects.Image;
+  private otherPlayerShields: Map<string, Phaser.GameObjects.Image> = new Map();
+
+  private powerupGroup: Phaser.Physics.Arcade.StaticGroup;
+
+  private npc! : Phaser.Physics.Arcade.Sprite;
+  private npcDirection: any;
+  private npcBullets : Phaser.Physics.Arcade.Group;
 
   private otherPlayerConcentrationSprites = new Map<string, Phaser.GameObjects.Sprite>();
   private otherPlayerConcentrationValues = new Map<string, number>();
@@ -67,8 +88,12 @@ export default class BoxScene extends Phaser.Scene {
     this.load.image("con_100", "src/assets/con_100.png");
     this.load.image("kill_buddy", "src/assets/char_kill.png");
     this.load.image("cloud", "src/assets/cloud.png");
+    this.load.image("shieldBubble", "assets/shield_bubble.png"); // TODO SHIELD ANIMATION
 
+    this.load.image("npcSprite", "assets/npc.png"); // TODO NPC
+    this.load.image("npcBullet", "assets/npc_bullet.png"); // TODO NPC
 
+    
     //background muisic
     this.load.audio("bgMusic", "src/assets/back.mp3");
 
@@ -88,6 +113,9 @@ export default class BoxScene extends Phaser.Scene {
   }
 
   create() {
+
+
+
     this.add.image(0, 0, this.selectedMap).setOrigin(0,0);
 
     this.cameras.main.setBounds(0, 0, 1134, 1110);
@@ -220,7 +248,16 @@ export default class BoxScene extends Phaser.Scene {
       runChildUpdate: true
     });
 
+    this.npcBullets = this.physics.add.group({
+      classType: Phaser.Physics.Arcade.Image,
+      runChildUpdate: true
+    })
+
     this.physics.add.overlap(this.box, this.enemyBullets, this.handlePlayerHit, undefined, this);
+
+    this.physics.add.overlap(this.box, this.npcBullets, this.handlePlayerHit, undefined, this);
+
+
 
     this.socket.on("hitConfirmed", (data: any) => {
       if (data.targetId === this.socket.id) {
@@ -282,9 +319,20 @@ export default class BoxScene extends Phaser.Scene {
 
     this.concentrationSprite = this.add.image(470, 100, "con_100").setScrollFactor(0).setScale(0.5);
 
+    this.shieldBubble = this.add.image(this.box.x, this.box.y, "shieldBubble");
+    this.shieldBubble.setVisible(false);
+    this.shieldBubble.setDepth(10); // über dem Player
+    this.shieldBubble.setScale(1.5); // etwas größer als der Spieler
+    this.shieldBubble.setAlpha(0.6); // leicht transparent
+
+
+
     if (this.selectedMap === "second_map") {
       this.healZone = this.physics.add.staticImage(1012, 243, "healZone").setVisible(false);
-
+      this.powerupGroup = this.physics.add.staticGroup();
+      this.speedZone = this.powerupGroup.create(0, 0, "speedPowerup").setVisible(true);
+      this.shieldZone = this.powerupGroup.create(0, 0, "shieldPowerup").setVisible(true);
+      this.placeZonesRandomly();
       const tableBorders = this.physics.add.staticGroup();
 
       tableBorders.create(570, 497, null)
@@ -308,8 +356,21 @@ export default class BoxScene extends Phaser.Scene {
       this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
     }
 
+
     if (this.selectedMap == "third_map"){
+
       this.healZone = this.physics.add.staticImage(850, 243, "healZone").setVisible(false);
+      this.powerupGroup = this.physics.add.staticGroup();
+      this.speedZone = this.powerupGroup.create(0, 0, "speedPowerup").setVisible(true);
+      this.shieldZone = this.powerupGroup.create(0, 0, "shieldPowerup").setVisible(true);
+      this.placeZonesRandomly();
+
+      this.npc = this.physics.add.sprite(Phaser.Math.Between(100, 900), 170, "npcSprite");
+      this.npc.setCollideWorldBounds(true);
+      this.npc.setVelocityX(150);
+      this.npcDirection = 1; // 1 = rechts, -1 = links
+
+
 
       const tableBorders = this.physics.add.staticGroup();
 
@@ -331,6 +392,8 @@ export default class BoxScene extends Phaser.Scene {
       this.physics.add.collider(this.box, tableBorders);
       this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());
       this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
+      this.physics.add.collider(this.npcBullets, tableBorders, (bullet) => bullet.destroy());
+
     }
 
     if (this.selectedMap == "ah"){
@@ -351,6 +414,21 @@ export default class BoxScene extends Phaser.Scene {
       this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());
       this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
     }
+
+    this.time.addEvent({
+      delay: 15000,
+      callback: this.placeZonesRandomly,
+      callbackScope: this,
+      loop: true
+    });
+
+    this.time.addEvent({
+      delay: Phaser.Math.Between(2000, 4000),
+      callback: () => this.npcShoot(),
+      loop: true,
+    });
+
+
 
     this.nameText = this.add.text(this.box.x, this.box.y - 60, 'YOU', {
       fontSize: '14px',
@@ -394,7 +472,48 @@ export default class BoxScene extends Phaser.Scene {
       }
     });
 
+    this.socket.on("playerGotSpeedBoost", (data: { playerId: string }) => {
+      if (data.playerId !== this.socket.id) {
+        this.showSpeedEffectForOtherPlayer(data.playerId);
+      }
+    });
+
+    this.socket.on("playerSpeedBoostExpired", (data: { playerId: string }) => {
+      if (data.playerId !== this.socket.id) {
+        this.removeSpeedEffectForOtherPlayer(data.playerId);
+      }
+    });
+    this.baseSpeed = 250;
+    this.speedMultiplier = 1.0;
+    this.speed = this.baseSpeed * this.speedMultiplier;
+
+    this.updateSpeed = () => {
+      this.speed = this.baseSpeed * this.speedMultiplier;
+    };
+
+    this.shieldActive = false;
+
+    this.socket.on("playerShieldActivated", ({ playerId }) => {
+      if (playerId !== this.socket.id) {
+        this.shieldActive = true;
+        this.shieldBubble.setVisible(true);
+        this.showShieldEffectForOtherPlayer(playerId);
+      }
+    });
+
+    this.socket.on("playerShieldExpired", ({ playerId }) => {
+      if (playerId !== this.socket.id) {
+        this.shieldActive = false;
+        this.shieldBubble.setVisible(false);
+        this.removeShieldEffectForOtherPlayer(playerId);
+      }
+    });
+
+    this.shieldCollectedRecently = false;
+
   }
+
+
 
   shootBullet() {
     if (this.isGameOver) return; //tote dürfen nicht schießen
@@ -507,12 +626,12 @@ export default class BoxScene extends Phaser.Scene {
 
 
     if (left) {
-      this.box.setVelocityX(-250);
+      this.box.setVelocityX(-this.speed);
       this.box.setTexture(`${this.selectedSkin}_left`);
       this.currentDirection = "left";
       moved = true;
     } else if (right) {
-      this.box.setVelocityX(250);
+      this.box.setVelocityX(this.speed);
       this.box.setTexture(`${this.selectedSkin}_right`);
       this.currentDirection = "right";
       moved = true;
@@ -521,18 +640,32 @@ export default class BoxScene extends Phaser.Scene {
     }
 
     if (up) {
-      this.box.setVelocityY(-250);
+      this.box.setVelocityY(-this.speed);
       this.box.setTexture(`${this.selectedSkin}_back`);
-      this.currentDirection = "back"; //das war mal up
+      this.currentDirection = "back";
       moved = true;
     } else if (down) {
-      this.box.setVelocityY(250);
+      this.box.setVelocityY(this.speed);
       this.box.setTexture(`${this.selectedSkin}_front`);
-      this.currentDirection = "front"; //das war mal down
+      this.currentDirection = "front";
       moved = true;
     } else {
       this.box.setVelocityY(0);
     }
+
+    if (this.shieldActive && this.shieldBubble) {
+      this.shieldBubble.setPosition(this.box.x, this.box.y);
+    }
+
+    this.otherPlayers.forEach((sprite, playerId) => {
+      const shield = this.otherPlayerShields.get(playerId);
+      if (shield) {
+        shield.setPosition(sprite.x, sprite.y);
+      }
+    });
+
+
+
 
     if (Phaser.Input.Keyboard.JustDown(this.shootKey)) {
       this.shootBullet();
@@ -540,6 +673,7 @@ export default class BoxScene extends Phaser.Scene {
 
     if (moved) {
       this.socket.emit("playerMoved", {
+
         x: this.box.x,
         y: this.box.y,
         dir: this.currentDirection,
@@ -563,6 +697,61 @@ export default class BoxScene extends Phaser.Scene {
         this.updateConcentrationSpriteForOtherPlayer(data.playerId, data.newConcentration, false);
       }
     });
+
+    if (this.physics.overlap(this.box, this.speedZone)) {
+      if (!this.speedBoostActive) {
+        this.speedBoostActive = true;
+        this.speedMultiplier = 2.0;// Geschwindigkeit verdoppeln
+        this.updateSpeed();
+        this.socket.emit("playerGotSpeedBoost", { playerId: this.socket.id });
+
+        this.time.delayedCall(5000, () => {
+          this.speedBoostActive = false;
+          this.speedMultiplier = 1.0; // Geschwindigkeit zurücksetzen
+          this.updateSpeed();
+          this.socket.emit("playerSpeedBoostExpired", { playerId: this.socket.id });
+        });
+      }
+    }
+
+    if (this.physics.overlap(this.box, this.shieldZone)) {
+      if (!this.shieldActive) {
+        this.shieldActive = true;
+        this.shieldBubble.setVisible(true);
+
+        // Info an Server senden
+        this.socket.emit("playerGotShield");
+
+
+        this.time.delayedCall(5000, () => {
+          this.shieldActive = false;
+          this.shieldBubble.setVisible(false);
+
+          this.socket.emit("shieldExpired");
+        });
+      }
+    }
+
+    if (this.npc) {
+      // Richtung wechseln, wenn am Rand
+      if (this.npc.x >= 1020) {
+        this.npcDirection = -1;
+      } else if (this.npc.x <= 70) {
+        this.npcDirection = 1;
+      }
+
+      // Bewegung setzen
+      this.npc.setVelocityX(this.npcDirection * 100);
+    }
+
+
+    this.npcBullets.getChildren().forEach((bullet: Phaser.Physics.Arcade.Image) => {
+      if (bullet.y > this.physics.world.bounds.height + 100) {
+        bullet.destroy();
+      }
+    });
+
+
 
     if (Phaser.Input.Keyboard.JustDown(this.rKey)) {
       const ytUrl = "https://www.youtube.com/watch?v=YAgJ9XugGBo";
@@ -600,15 +789,25 @@ export default class BoxScene extends Phaser.Scene {
 
 
   private handlePlayerHit(player: Phaser.GameObjects.GameObject, bullet: Phaser.GameObjects.GameObject) {
+    const shooterId = (bullet as any).shooterId;
+
+    if (this.shieldActive) {
+      bullet.destroy(); // Immun
+      return;
+    }
+
     bullet.destroy();
 
-    this.loseConcentration(25);
+    this.loseConcentration(25); // Lokale Konzentration
 
-    // Schütze informieren das er getroffen hat
-    const shooterId = (bullet as any).shooterId;
-    if (shooterId && shooterId !== this.socket.id) {
+    // Netzwerkmeldung je nach Quelle
+    if (shooterId === "npc") {
+      this.socket.emit("playerHitByNpc", { targetId: this.socket.id });
+    } else if (shooterId && shooterId !== this.socket.id) {
       this.socket.emit("playerHit", { shooterId, targetId: this.socket.id });
     }
+
+
 
     this.tweens.add({
       targets: this.box,
@@ -649,6 +848,90 @@ export default class BoxScene extends Phaser.Scene {
       conSprite.setTexture("con_0")
     }
     console.log(`--> Set sprite to:`, conSprite, `(concentration: ${concentration})`);
+  }
+
+  private showSpeedEffectForOtherPlayer(playerId: string) {
+    const otherPlayer = this.otherPlayers.get(playerId);
+    if (!otherPlayer) return;
+
+    //  Spieler blau einfärben
+    otherPlayer.setTint(0x00ffff);
+    // TODO: ANDERSTMACHEN
+
+  }
+
+  private removeSpeedEffectForOtherPlayer(playerId: string) {
+    const otherPlayer = this.otherPlayers.get(playerId);
+    if (!otherPlayer) return;
+
+    otherPlayer.clearTint();
+
+    // TODO: ANDERSTMACHEN
+  }
+
+  private showShieldEffectForOtherPlayer(playerId: string) {
+    const otherPlayer = this.otherPlayers.get(playerId);
+    if (!otherPlayer) return;
+
+    // Falls schon vorhanden, nicht erneut hinzufügen
+    if (this.otherPlayerShields.has(playerId)) return;
+
+    // Blase erzeugen
+    const shield = this.add.image(otherPlayer.x, otherPlayer.y, "shieldBubble");
+    shield.setScale(1.2);
+    shield.setAlpha(0.6);
+    shield.setDepth(1);
+
+    this.otherPlayerShields.set(playerId, shield);
+  }
+
+
+  private removeShieldEffectForOtherPlayer(playerId: string) {
+    const shield = this.otherPlayerShields.get(playerId);
+    if (shield) {
+      shield.destroy();
+      this.otherPlayerShields.delete(playerId);
+    }
+  }
+
+
+  private placeZonesRandomly(): void {
+    const minX = 53 + 50;
+    const maxX = 53 + 1022 - 50;
+    const minY = 160 + 50;
+    const maxY = 160 + 900 - 50;
+
+    const getRandomPosition = () => {
+      const x = Phaser.Math.Between(minX, maxX);
+      const y = Phaser.Math.Between(minY, maxY);
+      return { x, y };
+    };
+
+    const speedPos = getRandomPosition();
+    this.speedZone.setPosition(speedPos.x, speedPos.y);
+    (this.speedZone.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
+    this.speedZone.body.updateFromGameObject(); // <- wichtig
+
+    const shieldPos = getRandomPosition();
+    this.shieldZone.setPosition(shieldPos.x, shieldPos.y);
+    (this.shieldZone.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
+    this.shieldZone.body.updateFromGameObject(); // <- wichtig
+  }
+
+
+
+  private npcShoot() {
+    const bullet = this.npcBullets.create(this.npc.x, this.npc.y + 20, "bullet");
+    bullet.setVelocityY(200);
+    (bullet as any).shooterId = "npc";
+
+
+    // Optional: zerstören nach 3 Sekunden
+    this.npcBullets.getChildren().forEach((bullet) => {
+      if (bullet.y > this.physics.world.bounds.height) {
+        bullet.destroy();
+      }
+    });
   }
 
 

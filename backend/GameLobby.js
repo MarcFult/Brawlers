@@ -58,6 +58,13 @@ class GameLobby {
         socket.on("playerHit", ({ shooterId, targetId }) => {
             const target = this.players[targetId];
             if (target) {
+
+                // 🛡️ Wenn Shield aktiv ist: keinen Schaden!
+                if (target.shieldActive) {
+                    return;
+                }
+
+
                 // 1. Schaden berechnen
                 const damage = 25;
                 target.concentration = Math.max(0, (target.concentration || 100) - damage);
@@ -74,6 +81,28 @@ class GameLobby {
                 this.io.to(targetId).emit("playerDamaged", { damage });
 
                 // 4. Bei 0 Concentration: Spieler töten
+                if (target.concentration <= 0) {
+                    this.io.to(targetId).emit("youAreDead");
+                    this.io.to(this.id).emit("playerDied", {
+                        id: targetId,
+                        angle: 90
+                    });
+                }
+            }
+        });
+        socket.on("playerHitByNpc", ({ targetId }) => {
+            const target = this.players[targetId];
+            if (target && target.alive) {
+                const damage = 25;
+                target.concentration = Math.max(0, (target.concentration || 100) - damage);
+
+                this.io.to(this.id).emit("playerWasHit", {
+                    targetId,
+                    newConcentration: target.concentration,
+                });
+
+                this.io.to(targetId).emit("playerDamaged", { damage });
+
                 if (target.concentration <= 0) {
                     this.io.to(targetId).emit("youAreDead");
                     this.io.to(this.id).emit("playerDied", {
@@ -114,6 +143,39 @@ class GameLobby {
                 });
             }
         });
+
+        socket.on("playerGotSpeedBoost", () => {
+            const player = this.players[socket.id];
+            if (!player || !player.alive) return;
+
+            player.speedMultiplier = 2.0;
+
+            // Andere Spieler benachrichtigen
+            this.io.to(this.id).emit("playerGotSpeedBoost", { playerId: socket.id });
+
+            // Nach 5 Sekunden zurücksetzen
+            setTimeout(() => {
+                player.speedMultiplier = 1.0;
+                this.io.to(this.id).emit("playerSpeedBoostExpired", { playerId: socket.id });
+            }, 5000);
+        });
+
+        socket.on("playerGotShield", () => {
+            const player = this.players[socket.id];
+            if (player) {
+                player.shieldActive = true;
+                this.io.to(this.id).emit("playerGotShield", { playerId: socket.id });
+
+                setTimeout(() => {
+                    player.shieldActive = false;
+                    this.io.to(this.id).emit("playerShieldExpired", { playerId: socket.id });
+                }, 5000);
+            }
+        });
+
+
+
+
     }
 
     removePlayer(socketId) {

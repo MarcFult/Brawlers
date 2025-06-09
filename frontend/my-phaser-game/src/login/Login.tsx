@@ -1,12 +1,20 @@
+// src/login/Login.tsx
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';   
+import { useNavigate } from 'react-router-dom';
 import './login.css';
 
+interface LoginResponse {
+  id: number;
+  email: string;
+  error?: string;
+}
+
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [loading, setLoading]   = useState(false);
+
   const navigate = useNavigate();
   const loginBg = '/assets/login.png';
 
@@ -23,9 +31,10 @@ const Login: React.FC = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await resp.json();
+      const data: LoginResponse = await resp.json();
       if (resp.ok && data.id) {
-        navigate(`/player/${data.id}`);
+        // Pass both userId and email in state
+        navigate('/player', { state: { userId: data.id, email } });
       } else {
         setError(data.error || 'Login failed');
       }
@@ -40,7 +49,6 @@ const Login: React.FC = () => {
   return (
     <main className="login-wrapper" style={{ backgroundImage: `url(${loginBg})` }}>
       <form className="login-form" onSubmit={handleSubmit}>
-        {/* keep labels for a11y, but hide visually */}
         <label htmlFor="email" className="sr-only">E-Mail</label>
         <input
           id="email"
@@ -50,6 +58,7 @@ const Login: React.FC = () => {
           onChange={e => setEmail(e.target.value)}
           autoComplete="username"
           required
+          disabled={loading}
         />
 
         <label htmlFor="password" className="sr-only">Password</label>
@@ -61,16 +70,16 @@ const Login: React.FC = () => {
           onChange={e => setPassword(e.target.value)}
           autoComplete="current-password"
           required
+          disabled={loading}
         />
 
-        {/* the whole “ANMELDEN” box is clickable */}
         <button
           type="submit"
           className="loginn-btn"
           disabled={loading}
           aria-label="Anmelden"
         >
-          {loading && '...'}
+          {loading ? '...' : ''}
         </button>
 
         {error && <p className="login-error">{error}</p>}

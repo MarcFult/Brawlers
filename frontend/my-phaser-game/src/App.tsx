@@ -12,7 +12,7 @@ const App: React.FC = () => (
   <HashRouter>
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/player/:userId" element={<PlayerPage />} />
+      <Route path="/player/" element={<PlayerPage />} />
       <Route path="/register" element={<Register />} />
       <Route path="/choose-name" element={<EnterPlayerName />} />
       <Route path="*" element={<Navigate to="/register" replace />} />

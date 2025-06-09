@@ -1,7 +1,7 @@
 /*************************************************
   0. Global helpers (only once in your project)
 *************************************************/
-html,body{height:100%}          /* let flexbox stretch full height */
+html,body{height:100%; background-color: #334820}          /* let flexbox stretch full height */
 body{margin:0;display:flex;justify-content:center;align-items:center}
 
 /*************************************************

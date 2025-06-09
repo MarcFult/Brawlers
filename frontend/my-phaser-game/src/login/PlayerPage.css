@@ -1,50 +1,74 @@
+/* 0. Board container exactly 800×800 */
 .player-page {
-  background: #000;
-  color: #fff;
-  min-height: 100vh;
-  padding: 1rem;
+  width: 800px;
+  height: 800px;
   position: relative;
-  font-family: Arial, sans-serif;
+  background: url('/assets/home.png') no-repeat center/contain;
+  font-family: "Press Start 2P", monospace;
 }
 
+/* 1. Header at top center */
+.player-header {
+  position: absolute;
+  top:   20px;
+  left:  50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+.player-header .stats {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+/* 2. Phaser canvas sits 20px above bottom of board */
+.game-container {
+  position: absolute;
+  bottom: 20px;
+  left:   50%;
+  transform: translateX(-50%);
+  width:  800px;
+  height: 600px;
+  pointer-events: none;
+}
+
+/* 3. Lobby hit-area (invisible) */
+.lobby-button {
+  position: absolute;
+  /* these should already line up from previous steps */
+  left: 250px;
+  top:  315px;
+  width: 300px;
+  height: 80px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  outline:2px dashed cyan;
+}
+
+/* 4. Logout hit-area */
 .logout-button {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: #c00;
+  right: 20px;
+  top:   20px;
+  width: 40px;
+  height:40px;
+  background: transparent;
   border: none;
-  color: #fff;
-  padding: 0.5rem 1rem;
   cursor: pointer;
-  border-radius: 0.25rem;
+
+  outline:2px dashed red;
 }
 
-.player-header {
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.player-header h1 {
-  margin: 0;
-  font-size: 2rem;
-}
-
-.stats {
-  margin-top: 0.5rem;
-  display: flex;
-  justify-content: center;
-  gap: 1.5rem;
-}
-
-.game-container {
-  width: 800px;
-  height: 600px;
-  margin: 0 auto;
-  background: #111;
-}
-
+/* 5. Loading fallback centered in board */
 .loading {
+  position: absolute;
+  top:  50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   color: #fff;
-  text-align: center;
-  padding: 2rem;
+  font-family: "Press Start 2P", monospace;
 }
+
+/* remove focus outline */
+button:focus { outline: none; }

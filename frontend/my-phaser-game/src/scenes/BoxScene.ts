@@ -921,6 +921,7 @@ export default class BoxScene extends Phaser.Scene {
 
 
   private npcShoot() {
+    if (!this.npc) return;
     const bullet = this.npcBullets.create(this.npc.x, this.npc.y + 20, "bullet");
     bullet.setVelocityY(200);
     (bullet as any).shooterId = "npc";

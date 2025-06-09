@@ -55,6 +55,9 @@ export default class BoxScene extends Phaser.Scene {
   private enemyBullets!:  Phaser.Physics.Arcade.Group;
 
   private lobbyId: string = "default";
+  private cloud: Phaser.Physics.Arcade.Image & { body: Phaser.Physics.Arcade.StaticBody };
+  private cloudSize: number;
+  private cloudGrowthRate: number;
 
 
   constructor() {
@@ -79,6 +82,7 @@ export default class BoxScene extends Phaser.Scene {
     this.load.image("first_map", 'src/assets/first_map.png')
     this.load.image("second_map", 'src/assets/second_map.png')
     this.load.image("third_map", 'src/assets/third_map.png')
+    this.load.image("fourth_map", 'src/assets/fourth_map.png')
     this.load.image("ah", 'src/assets/ah.png')
     //concentration
     this.load.image("con_0", "src/assets/con_0.png");
@@ -87,13 +91,14 @@ export default class BoxScene extends Phaser.Scene {
     this.load.image("con_75", "src/assets/con_75.png");
     this.load.image("con_100", "src/assets/con_100.png");
     this.load.image("kill_buddy", "src/assets/char_kill.png");
+    //cloud
     this.load.image("cloud", "src/assets/cloud.png");
-    this.load.image("shieldBubble", "assets/shield_bubble.png"); // TODO SHIELD ANIMATION
-
-    this.load.image("npcSprite", "assets/npc.png"); // TODO NPC
-    this.load.image("npcBullet", "assets/npc_bullet.png"); // TODO NPC
-
-    
+    //power ups
+    this.load.image("shield", "src/assets/shield.png");
+    this.load.image("speed", "src/assets/speed.png");
+    //npc
+    this.load.image("npcSprite", "src/assets/npc.png");
+    this.load.image("npcBullet", "src/assets/npc_bullet.png");
     //background muisic
     this.load.audio("bgMusic", "src/assets/back.mp3");
 
@@ -106,7 +111,6 @@ export default class BoxScene extends Phaser.Scene {
       this.load.image(`${skin}_left`, `src/assets/char/${skin}_left.png`);
       this.load.image(`${skin}_right`, `src/assets/char/${skin}_right.png`);
     }
-
     this.load.image("alien_bullet", `src/assets/char/alien_bullet.png`);
     this.load.image("fox_bullet", `src/assets/char/fox_bullet.png`);
 
@@ -287,7 +291,7 @@ export default class BoxScene extends Phaser.Scene {
             data.targetId,
             data.newConcentration);
 
-        // Farbanimation (optional)
+        // Farbanimation
         this.tweens.addCounter({
           from: 0,
           to: 1,
@@ -319,7 +323,7 @@ export default class BoxScene extends Phaser.Scene {
 
     this.concentrationSprite = this.add.image(470, 100, "con_100").setScrollFactor(0).setScale(0.5);
 
-    this.shieldBubble = this.add.image(this.box.x, this.box.y, "shieldBubble");
+    this.shieldBubble = this.add.image(this.box.x, this.box.y, "shield");
     this.shieldBubble.setVisible(false);
     this.shieldBubble.setDepth(10); // über dem Player
     this.shieldBubble.setScale(1.5); // etwas größer als der Spieler
@@ -330,22 +334,22 @@ export default class BoxScene extends Phaser.Scene {
     if (this.selectedMap === "second_map") {
       this.healZone = this.physics.add.staticImage(1012, 243, "healZone").setVisible(false);
       this.powerupGroup = this.physics.add.staticGroup();
-      this.speedZone = this.powerupGroup.create(0, 0, "speedPowerup").setVisible(true);
-      this.shieldZone = this.powerupGroup.create(0, 0, "shieldPowerup").setVisible(true);
+      this.speedZone = this.powerupGroup.create(0, 0, "speed").setVisible(true);
+      this.shieldZone = this.powerupGroup.create(0, 0, "shield").setVisible(true);
       this.placeZonesRandomly();
       const tableBorders = this.physics.add.staticGroup();
 
-      tableBorders.create(570, 497, null)
+      tableBorders.create(570, 497)
           .setDisplaySize(576, 90)
           .refreshBody()
           .setVisible();
 
-      tableBorders.create(570, 702, null)
+      tableBorders.create(570, 702)
           .setDisplaySize(576, 90)
           .refreshBody()
           .setVisible();
 
-      tableBorders.create(570, 905, null)
+      tableBorders.create(570, 905)
           .setDisplaySize(576, 90)
           .refreshBody()
           .setVisible();
@@ -361,8 +365,8 @@ export default class BoxScene extends Phaser.Scene {
 
       this.healZone = this.physics.add.staticImage(850, 243, "healZone").setVisible(false);
       this.powerupGroup = this.physics.add.staticGroup();
-      this.speedZone = this.powerupGroup.create(0, 0, "speedPowerup").setVisible(true);
-      this.shieldZone = this.powerupGroup.create(0, 0, "shieldPowerup").setVisible(true);
+      this.speedZone = this.powerupGroup.create(0, 0, "speed").setVisible(true);
+      this.shieldZone = this.powerupGroup.create(0, 0, "shield").setVisible(true);
       this.placeZonesRandomly();
 
       this.npc = this.physics.add.sprite(Phaser.Math.Between(100, 900), 170, "npcSprite");
@@ -397,6 +401,9 @@ export default class BoxScene extends Phaser.Scene {
     }
 
     if (this.selectedMap == "ah"){
+      this.speedZone = this.powerupGroup.create(0, 0, "speed").setVisible(true);
+      this.shieldZone = this.powerupGroup.create(0, 0, "shield").setVisible(true);
+      this.placeZonesRandomly();
       const tableBorders = this.physics.add.staticGroup();
 
       tableBorders.create(150, 600)
@@ -406,6 +413,47 @@ export default class BoxScene extends Phaser.Scene {
 
       tableBorders.create(970, 600)
           .setDisplaySize(20, 700)
+          .refreshBody()
+          .setVisible();
+
+
+      this.physics.add.collider(this.box, tableBorders);
+      this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());
+      this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
+    }
+
+    if (this.selectedMap == "fourth_map"){
+
+      this.healZone = this.physics.add.staticImage(1012, 243, "healZone").setVisible(false);
+      this.powerupGroup = this.physics.add.staticGroup();
+      this.speedZone = this.powerupGroup.create(0, 0, "speed").setVisible(true);
+      this.shieldZone = this.powerupGroup.create(0, 0, "shield").setVisible(true);
+      this.placeZonesRandomly();
+      this.createShrinkingPlayZoneCloud();
+      const tableBorders = this.physics.add.staticGroup();
+
+      this.npc = this.physics.add.sprite(Phaser.Math.Between(100, 900), 170, "npcSprite");
+      this.npc.setCollideWorldBounds(true);
+      this.npc.setVelocityX(150);
+      this.npcDirection = 1; // 1 = rechts, -1 = links
+
+      tableBorders.create(280, 640)
+          .setDisplaySize(455, 95)
+          .refreshBody()
+          .setVisible();
+
+      tableBorders.create(280, 885)
+          .setDisplaySize(455, 95)
+          .refreshBody()
+          .setVisible();
+
+      tableBorders.create(900, 464)
+          .setDisplaySize(340, 95)
+          .refreshBody()
+          .setVisible();
+
+      tableBorders.create(900, 746)
+          .setDisplaySize(340, 95)
           .refreshBody()
           .setVisible();
 
@@ -493,10 +541,10 @@ export default class BoxScene extends Phaser.Scene {
 
     this.shieldActive = false;
 
-    this.socket.on("playerShieldActivated", ({ playerId }) => {
+    this.socket.on("playerGotShield", ({ playerId }) => {
       if (playerId !== this.socket.id) {
         this.shieldActive = true;
-        this.shieldBubble.setVisible(true);
+        this.shieldBubble.setVisible(false);
         this.showShieldEffectForOtherPlayer(playerId);
       }
     });
@@ -764,6 +812,8 @@ export default class BoxScene extends Phaser.Scene {
         conSprite.setPosition(playerSprite.x, playerSprite.y - 60);
       }
     });
+
+    this.updateOtherPlayerShields();
   }
 
     private addOtherPlayer(data: any) {
@@ -786,7 +836,6 @@ export default class BoxScene extends Phaser.Scene {
       console.error("Fehler beim Erstellen:", error);
     }
   }
-
 
   private handlePlayerHit(player: Phaser.GameObjects.GameObject, bullet: Phaser.GameObjects.GameObject) {
     const shooterId = (bullet as any).shooterId;
@@ -877,11 +926,10 @@ export default class BoxScene extends Phaser.Scene {
     if (this.otherPlayerShields.has(playerId)) return;
 
     // Blase erzeugen
-    const shield = this.add.image(otherPlayer.x, otherPlayer.y, "shieldBubble");
+    const shield = this.add.image(otherPlayer.x, otherPlayer.y, "shield");
     shield.setScale(1.2);
     shield.setAlpha(0.6);
     shield.setDepth(1);
-
     this.otherPlayerShields.set(playerId, shield);
   }
 
@@ -922,12 +970,12 @@ export default class BoxScene extends Phaser.Scene {
 
   private npcShoot() {
     if (!this.npc) return;
-    const bullet = this.npcBullets.create(this.npc.x, this.npc.y + 20, "bullet");
+    const bullet = this.npcBullets.create(this.npc.x, this.npc.y + 20, "npcBullet");
     bullet.setVelocityY(200);
     (bullet as any).shooterId = "npc";
 
 
-    // Optional: zerstören nach 3 Sekunden
+    // zerstören nach 3 Sekunden
     this.npcBullets.getChildren().forEach((bullet) => {
       if (bullet.y > this.physics.world.bounds.height) {
         bullet.destroy();
@@ -969,5 +1017,46 @@ export default class BoxScene extends Phaser.Scene {
       default: return 'bullet';
     }
   }
+
+  private updateOtherPlayerShields() {
+    this.otherPlayerShields.forEach((shield, playerId) => {
+      const player = this.otherPlayers.get(playerId);
+      if (player) {
+        shield.setPosition(player.x, player.y);
+      }
+    });
+  }
+
+  private createShrinkingPlayZoneCloud() {
+    this.cloud = this.physics.add.staticImage(570, 550, "cloud")
+        .setDisplaySize(80, 50)
+        .setAlpha(0.5)
+        .setDepth(1); // Damit sie sichtbar ist, aber nicht im Vordergrund
+
+    this.cloudSize = 80; // Startgröße
+    this.cloudGrowthRate = 10; // alle X ms wächst die Wolke
+
+    // Kollisionscheck
+    this.physics.add.overlap(this.box, this.cloud, () => {
+      if (!this.isGameOver && !this.recentlyDamagedByCloud) {
+        this.loseConcentration(10);
+        this.recentlyDamagedByCloud = true;
+        this.time.delayedCall(1000, () => {
+          this.recentlyDamagedByCloud = false;
+        });
+      }
+    });
+
+    // Wachstumstimer
+    this.time.addEvent({
+      delay: 5000, // alle 5 Sekunden
+      loop: true,
+      callback: () => {
+        this.cloudSize += this.cloudGrowthRate;
+        this.cloud.setDisplaySize(this.cloudSize, this.cloudSize);
+      }
+    });
+  }
+
 
 }

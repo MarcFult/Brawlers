@@ -1,10 +1,14 @@
 class GameLobby {
+
     constructor(id, name, maxPlayers, io) {
         this.id = id;
         this.name = name;
         this.maxPlayers = maxPlayers;
         this.io = io;
         this.players = new Map();
+        this.cleanupTimeout = null;
+        this.lobbyManager = null;
+
     }
 
     addPlayer(socket) {
@@ -37,6 +41,12 @@ class GameLobby {
             console.log(`Spielerupdate ${socket.id}:`, this.players[socket.id]);
             this.io.to(this.id).emit("playerUpdated", this.players[socket.id]);
         });
+
+        this.players.set(socket.id, { socket });
+        if (this.cleanupTimeout) {
+            clearTimeout(this.cleanupTimeout); // Cleanup abbrechen, wenn wieder Spieler da
+            this.cleanupTimeout = null;
+        }
 
         socket.on("playerMoved", (data) => {
             const player = this.players[socket.id];
@@ -114,11 +124,35 @@ class GameLobby {
                 });
             }
         });
+        this.broadcastLobbyStatus();
+
+        if (!this.countdownInterval && this.playerCount() >= Math.ceil(this.maxPlayers / 2)) {
+            this.startCountdown(25);
+        }
+
+        socket.on("lobbyListUpdate", (lobbies) => {
+            renderLobbies(lobbies); // nutzt `countdown` mit
+        });
+
+
     }
 
     removePlayer(socketId) {
         delete this.players[socketId];
+        // Wenn leer, Cleanup starten
+        if (Object.keys(this.players).length === 0) {
+            this.scheduleCleanup();
+        }
     }
+
+    scheduleCleanup() {
+        console.log(`Leere Lobby ${this.id}, wird in 60 Sekunden gelöscht.`);
+        this.cleanupTimeout = setTimeout(() => {
+            console.log(`Lobby ${this.id} gelöscht.`);
+            this.lobbyManager.deleteLobby(this.id);
+        }, 60000); // 60 Sekunden
+    }
+
 
     playerCount() {
         return Object.keys(this.players).length;
@@ -131,6 +165,41 @@ class GameLobby {
     isEmpty() {
         return this.playerCount() === 0;
     }
+    startCountdown(durationInSeconds = 25) {
+        if (this.countdownInterval) return;
+
+        this.currentCountdown = durationInSeconds;
+        this.io.to(this.id).emit("lobbyStatusUpdate", {
+            players: this.playerCount(),
+            maxPlayers: this.maxPlayers,
+            countdown: this.currentCountdown
+        });
+
+        this.countdownInterval = setInterval(() => {
+            this.currentCountdown--;
+            this.io.to(this.id).emit("lobbyStatusUpdate", {
+                players: this.playerCount(),
+                maxPlayers: this.maxPlayers,
+                countdown: this.currentCountdown
+            });
+
+            if (this.currentCountdown <= 0) {
+                clearInterval(this.countdownInterval);
+                this.countdownInterval = null;
+                this.currentCountdown = null;
+                this.io.to(this.id).emit("gameStart", { lobbyId: this.id });
+            }
+        }, 1000);
+    }
+
+    broadcastLobbyStatus() {
+        this.io.to(this.id).emit("lobbyStatusUpdate", {
+            players: this.playerCount(),
+            maxPlayers: this.maxPlayers,
+            countdown: this.currentCountdown // kann auch `null` sein
+        });
+    }
+
 }
 
 module.exports = GameLobby;

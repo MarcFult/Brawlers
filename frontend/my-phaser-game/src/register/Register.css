@@ -1,0 +1,124 @@
+/*************************************************
+  0. Global helpers (once per project)
+*************************************************/
+html,body{height:100%}
+body{
+  margin: 0;
+  display: flex;
+  justify-content: center;   /* ← centre horizontally  */
+  align-items:   center;     /* ← centre vertically    */
+  /* if you ever need scrollbars on small screens: */
+  min-height: 100vh;
+}
+/*************************************************
+  1. Board dimensions (1536 × 1024 px sprite)
+*************************************************/
+.reg-wrapper{
+  /* 1 ▸ exact sprite dimensions  */
+  width: 800px;
+  height:800px;
+
+  /* 2 ▸ keep the art sharp & centred */
+  background-repeat: no-repeat;
+  background-size:  contain;
+  background-position: center center;   /* NEW */
+
+  position: relative;
+  font-family: "Press Start 2P", monospace;
+}
+
+.reg-form{width:100%;height:100%;position:relative}
+
+/*************************************************
+  2. Inputs — transparent, pixel-perfect
+*************************************************/
+.reg-input{
+  position:absolute;
+  background:transparent;
+  border:none;
+  outline:none;
+  padding:0 20px;              /* left/right only */
+  line-height:88px;            /* = element height */
+  font-size:26px;
+  color:#fff;
+  caret-color:#fff;
+}
+
+/* coordinates are relative to the 1536×1024 board */
+/* tweak a pixel or two with DevTools if needed */
+.email-field   {left: 368px; top: 288px; width:340px; height:55px}
+.password-field{left: 368px; top: 369px; width:340px; height:55px}
+
+/* remove blue autofill & credential icon */
+input::-webkit-credentials-auto-fill-button{display:none!important}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active{
+  -webkit-box-shadow:0 0 0 1000px transparent inset!important;
+  box-shadow:0 0 0 1000px transparent inset!important;
+  -webkit-text-fill-color:#fff!important;
+}
+
+/*************************************************
+  3. REGISTER hit-area (bottom frame)
+*************************************************/
+.reg-btn{
+  position:absolute;
+  left:370px;           /* 745 scaled */
+  top:440px;            /* 730 scaled + vertical centring offset */
+  width:258px;          /* 670 scaled */
+  height:69px;          /* 190 scaled */
+
+  background:transparent;          /* keep transparent in production */
+  border:none;
+  cursor:pointer;
+
+ 
+
+  
+
+}
+.reg-btn:disabled{cursor:default}
+
+/*************************************************
+  4. Error line
+*************************************************/
+.reg-error{
+  position:absolute;
+  left:0; right:0; top:260px;
+  text-align:center;
+  color:#ff5e5e;
+  font-size:16px;
+}
+
+.login-btn{
+  position:absolute;
+  left:370px;           /* 745 scaled */
+  top:567px;            /* 730 scaled + vertical centring offset */
+  width:225px;          /* 670 scaled */
+  height:67px;          /* 190 scaled */
+
+  background:transparent;          /* keep transparent in production */
+  border:none;
+  cursor:pointer;
+
+
+outline:2px dashed rebeccapurple;
+  
+
+}
+
+/*************************************************
+  5. Screen-reader helpers
+*************************************************/
+.sr-only{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}

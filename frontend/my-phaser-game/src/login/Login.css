@@ -1,0 +1,98 @@
+/*************************************************
+  0. Global helpers (only once in your project)
+*************************************************/
+html,body{height:100%}          /* let flexbox stretch full height */
+body{margin:0;display:flex;justify-content:center;align-items:center}
+
+/*************************************************
+  1. The pixel-art board
+*************************************************/
+.login-wrapper{
+  /* size of the sprite */
+  width:884px;
+  height:560px;
+
+  /* the art itself is set inline in <main style=..> */
+  background-repeat:no-repeat;
+  background-size:contain;
+
+  /* reference for absolute-positioned children */
+  position:relative;
+
+  /* optional pixel font */
+  font-family:"Press Start 2P",monospace;
+}
+
+/*************************************************
+  2. Form skeleton
+*************************************************/
+.login-form{width:100%;height:100%;position:relative}
+
+/*************************************************
+  3. Inputs (transparent boxes)
+*************************************************/
+.login-input{
+  position:absolute;
+  inset:0;                /* let individual rules below take over */
+  background:transparent;
+  border:none;
+  outline:none;
+  padding:12px 16px;
+  font-size:22px;
+  color:#fff;
+  caret-color:#fff;       /* white caret fits the theme */
+}
+
+/* exact coordinates on the sprite (adjust a px or two if needed) */
+.email-login-field   {left:458px;top:165px;width:340px;height:20px}
+.password-login-field{left:458px;top:320px;width:340px;height:0px}
+
+/* kill autofill pale-blue & suggestion button (WebKit/Blink) */
+input::-webkit-credentials-auto-fill-button{display:none!important}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active{
+  -webkit-box-shadow:0 0 0 1000px transparent inset!important;
+  box-shadow:0 0 0 1000px transparent inset!important;
+  -webkit-text-fill-color:#fff!important;
+}
+
+/*************************************************
+  4. “ANMELDEN” hit-area
+*************************************************/
+.loginn-btn{
+  position:absolute;
+  left:420px;top:435px;width:430px;height:80px;
+  background:transparent;
+  border:none;
+  cursor:pointer;
+
+ 
+}
+.login-btn:disabled{cursor:default}
+
+/*************************************************
+  5. Error read-out
+*************************************************/
+.login-error{
+  position:absolute;
+  left:0;right:0;top:110px;
+  text-align:center;
+  color:#ff5e5e;
+  font-size:14px;
+}
+
+/*************************************************
+  6. Visually-hidden labels (a11y)
+*************************************************/
+.sr-only{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}

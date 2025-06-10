@@ -4,6 +4,7 @@ import com.dlc.authentification.model.User;
 import com.dlc.authentification.model.requests.LoginRequest;
 import com.dlc.authentification.model.requests.RegisterRequest;
 import com.dlc.authentification.model.responses.LoginResponse;
+import com.dlc.authentification.model.responses.RegisterResponse;
 import com.dlc.authentification.service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,15 +40,18 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
+    public ResponseEntity<RegisterResponse> register(
+            @Valid @RequestBody RegisterRequest req) {
         try {
             User created = svc.register(req.getEmail(), req.getPassword());
-            return ResponseEntity.ok("User registered with ID " + created.getId());
+            // on success: id set, error null
+            return ResponseEntity
+                    .ok(new RegisterResponse(created.getId(), null));
         } catch (IllegalArgumentException e) {
-            // e.g. email already in use
+            // on failure: id null, error set
             return ResponseEntity
                     .badRequest()
-                    .body(Collections.singletonMap("error", e.getMessage()));
+                    .body(new RegisterResponse(null, e.getMessage()));
         }
     }
 

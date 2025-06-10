@@ -1,21 +1,23 @@
-import React, {useState} from 'react';
-import Game from './components/Game';
+import React from 'react';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 
-const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true);  // Update state when login is successful
-  };
-
-  return (
-    <div className="App bg-gray-100 p-4">
+import Login from './login/Login';
+import PlayerPage from './login/PlayerPage';
+import Register from './register/Register';
+import EnterPlayerName from './enterPlayerName/EnterPlayerName';
 
 
-      <Game />
-    </div>
-  );
-};
+const App: React.FC = () => (
+  <HashRouter>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/player/:userId" element={<PlayerPage />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/choose-name" element={<EnterPlayerName />} />
+      <Route path="*" element={<Navigate to="/register" replace />} />
+    </Routes>
+  </HashRouter>
+);
 
 export default App;

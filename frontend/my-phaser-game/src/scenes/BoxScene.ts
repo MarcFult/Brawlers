@@ -401,6 +401,7 @@ export default class BoxScene extends Phaser.Scene {
     }
 
     if (this.selectedMap == "ah"){
+      this.powerupGroup = this.physics.add.staticGroup();
       this.speedZone = this.powerupGroup.create(0, 0, "speed").setVisible(true);
       this.shieldZone = this.powerupGroup.create(0, 0, "shield").setVisible(true);
       this.placeZonesRandomly();
@@ -747,6 +748,7 @@ export default class BoxScene extends Phaser.Scene {
     });
 
     if (this.physics.overlap(this.box, this.speedZone)) {
+      if(!this.speedZone) return;
       if (!this.speedBoostActive) {
         this.speedBoostActive = true;
         this.speedMultiplier = 2.0;// Geschwindigkeit verdoppeln
@@ -763,6 +765,8 @@ export default class BoxScene extends Phaser.Scene {
     }
 
     if (this.physics.overlap(this.box, this.shieldZone)) {
+      if(!this.shieldZone) return;
+
       if (!this.shieldActive) {
         this.shieldActive = true;
         this.shieldBubble.setVisible(true);
@@ -782,9 +786,9 @@ export default class BoxScene extends Phaser.Scene {
 
     if (this.npc) {
       // Richtung wechseln, wenn am Rand
-      if (this.npc.x >= 1020) {
+      if (this.npc.x >= 700) {
         this.npcDirection = -1;
-      } else if (this.npc.x <= 70) {
+      } else if (this.npc.x <= 90) {
         this.npcDirection = 1;
       }
 
@@ -944,6 +948,7 @@ export default class BoxScene extends Phaser.Scene {
 
 
   private placeZonesRandomly(): void {
+    if(!this.powerupGroup) return;
     const minX = 53 + 50;
     const maxX = 53 + 1022 - 50;
     const minY = 160 + 50;

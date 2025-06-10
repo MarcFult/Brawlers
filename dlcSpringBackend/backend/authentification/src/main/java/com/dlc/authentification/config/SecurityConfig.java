@@ -16,11 +16,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 @Configuration
 public class SecurityConfig {
@@ -67,22 +62,6 @@ public class SecurityConfig {
         return p;
     }
 
-    // 5) CORS for React
-    // @Bean
-    // CorsConfigurationSource corsConfigurationSource() {
-    // CorsConfiguration cfg = new CorsConfiguration();
-    // cfg.setAllowedOrigins(List.of("http://localhost:3000", "http://10.0.40.186",
-    // "http://localhost:5176"));
-    // cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    // cfg.setAllowedHeaders(List.of("*"));
-    // cfg.setAllowCredentials(true);
-    // UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
-    // src.registerCorsConfiguration("/auth/**", cfg);
-    // src.registerCorsConfiguration("/users/**", cfg);
-    // return src;
-    // }
-
-    // 6) Main HTTP security
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http

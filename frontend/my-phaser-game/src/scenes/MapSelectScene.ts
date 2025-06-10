@@ -10,6 +10,7 @@ export default class MapSelectScene extends Phaser.Scene {
         this.load.image("preview2", "src/assets/second_map.png");
         this.load.image("preview3", "src/assets/third_map.png");
         this.load.image("preview4", "src/assets/ah.png");
+        this.load.image("preview5", "src/assets/fourth_map.png")
 
     }
 
@@ -20,6 +21,8 @@ export default class MapSelectScene extends Phaser.Scene {
         const map2 = this.add.image(500, 200, "preview2").setInteractive().setScale(0.3);
         const map3 = this.add.image(800, 200, "preview3").setInteractive().setScale(0.3);
         const map4 = this.add.image(200, 600, "preview4").setInteractive().setScale(0.3);
+        const map5 = this.add.image(500, 600, "preview5").setInteractive().setScale(0.3);
+
 
 
         map1.on("pointerdown", () => {
@@ -36,6 +39,10 @@ export default class MapSelectScene extends Phaser.Scene {
 
         map4.on("pointerdown", () => {
             this.scene.start("SkinSelectScene", { selectedMap: "ah" });
+        });
+
+        map5.on("pointerdown", () => {
+            this.scene.start("SkinSelectScene", { selectedMap: "fourth_map" });
         });
     }
 }

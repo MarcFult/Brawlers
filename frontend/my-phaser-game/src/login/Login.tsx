@@ -1,7 +1,7 @@
 // src/login/Login.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './login.css';
+import './Login.css';
 
 interface LoginResponse {
   id: number;
@@ -16,7 +16,7 @@ const Login: React.FC = () => {
   const [loading, setLoading]   = useState(false);
 
   const navigate = useNavigate();
-  const loginBg = '/assets/login.png';
+  const loginBg = './src/assets/login.png';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

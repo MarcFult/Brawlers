@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Phaser from 'phaser';
-import './playerPage.css';
+import './PlayerPage.css';
 
 interface Player {
   id: number;
@@ -60,7 +60,7 @@ const PlayerPage: React.FC = () => {
     class DashboardScene extends Phaser.Scene {
       preload() {
         cp.gameObjects.forEach(obj =>
-          this.load.image(obj, `/assets/char/${obj}_left.png`)
+          this.load.image(obj, `src/assets/char/${obj}_left.png`)
         );
       }
       create() {

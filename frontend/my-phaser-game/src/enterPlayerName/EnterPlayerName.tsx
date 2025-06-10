@@ -62,7 +62,7 @@ const EnterPlayerName: React.FC = () => {
   };
 
   // 5) render
-  const bg = '/assets/enterPlayer.png';
+  const bg = './src/assets/enterPlayer.png';
   return (
     <main
       className="name-wrapper"

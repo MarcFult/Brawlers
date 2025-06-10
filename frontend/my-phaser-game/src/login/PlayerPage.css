@@ -3,7 +3,7 @@
   width: 800px;
   height: 800px;
   position: relative;
-  background: url('/assets/home.png') no-repeat center/contain;
+  background: url('src/assets/home.png') no-repeat center/contain;
   font-family: "Press Start 2P", monospace;
 }
 

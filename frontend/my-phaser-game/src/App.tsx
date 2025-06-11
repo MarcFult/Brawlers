@@ -21,5 +21,5 @@ const App: React.FC = () => (
     </Routes>
   </HashRouter>
 );
-
+//         <Route path="/game" element={<Game />} />
 export default App;

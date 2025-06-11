@@ -143,13 +143,13 @@
     socket.on("gameStart", ({ lobbyId }) => {
         console.log("Spielstart für Lobby:", lobbyId);
         // Weiterleitung zur Phaser-Game-Seite
-        window.location.href = `/#/game?lobbyId=${lobbyId}`;
+        window.location.href = `/#/game?lobbyId=${lobbyId}`; // /#/game?
     });
 
 
     socket.on("startGame", ({ lobbyId }) => {
         if (lobbyId === currentLobbyId) {
-            window.location.href = `/#/game?lobbyId=${encodeURIComponent(lobbyId)}`;
+            window.location.href = `/#/game?lobbyId=${encodeURIComponent(lobbyId)}`; // /#/game?
         }
     });
 

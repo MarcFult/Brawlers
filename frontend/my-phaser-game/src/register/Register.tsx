@@ -16,6 +16,7 @@ const Register: React.FC = () => {
 
   const navigate = useNavigate();
   const bg = './src/assets/registration.png';
+  //   const bg = './src/assets/registration.png';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

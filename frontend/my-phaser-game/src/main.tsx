@@ -7,7 +7,7 @@ const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
-// Only enforce lobbyId when hitting "/game"
+// Only enforce lobbyId when hittig "/game"
 if (window.location.pathname.startsWith('/game')) {
   const urlParams = new URLSearchParams(window.location.search);
   if (!urlParams.get('lobbyId')) {

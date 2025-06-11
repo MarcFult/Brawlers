@@ -112,6 +112,7 @@ const PlayerPage: React.FC = () => {
     window.location.href = '/lobby.html';
   };
 
+
   if (player === null) {
     return <div className="loading">Loading player…</div>;
   }

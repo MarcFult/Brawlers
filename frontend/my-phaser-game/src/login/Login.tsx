@@ -17,6 +17,7 @@ const Login: React.FC = () => {
 
   const navigate = useNavigate();
   const loginBg = './src/assets/login.png';
+  //  const loginBg = './src/assets/login.png';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

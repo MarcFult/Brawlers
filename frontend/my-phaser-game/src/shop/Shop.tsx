@@ -96,7 +96,7 @@ const Shop = ({ userId }) => {
 
     return (
         <div className="shop-container">
-            <img src="/assets/Shop.png" alt="Shop" className="shop-background" />
+            <img src="/assets/Shop.png" alt="Shop" className="shop-background"/>
 
             {/* Invisible Item Buttons */}
             <div className="interactive-overlay">
@@ -120,7 +120,7 @@ const Shop = ({ userId }) => {
 
             {/* Side Page Numbers */}
             <div className="page-buttons-vertical">
-                {Array.from({ length: totalPages }).map((_, i) => (
+                {Array.from({length: totalPages}).map((_, i) => (
                     <button
                         key={i}
                         className={i === currentPage ? 'active' : ''}
@@ -134,10 +134,11 @@ const Shop = ({ userId }) => {
             {/* Buy $ Button */}
             <button
                 className="buy-dollar-button"
-                onClick={() => setShowPaymentPopup(true)}
+                onClick={() => window.location.href = "/buy-ects.html"}
             >
                 Buy $
             </button>
+
 
             {/* Balance Display */}
             <div className="balance-display">
@@ -148,7 +149,7 @@ const Shop = ({ userId }) => {
             {showPurchasePopup && (
                 <div className="purchase-popup">
                     <h2>Purchased {purchasedItem.name}!</h2>
-                    <img src={purchasedItem.sprite} alt={purchasedItem.name} />
+                    <img src={purchasedItem.sprite} alt={purchasedItem.name}/>
                     <button onClick={() => setShowPurchasePopup(false)}>Close</button>
                 </div>
             )}

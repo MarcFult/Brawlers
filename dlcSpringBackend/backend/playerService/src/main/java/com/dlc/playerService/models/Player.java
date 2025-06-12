@@ -61,9 +61,9 @@ public class Player {
 
     public int getEcts() {
         return ects;
-    }
+    }    public void setEcts(int ects) {
 
-    public void setEcts(int ects) {
+
         this.ects = ects;
     }
 

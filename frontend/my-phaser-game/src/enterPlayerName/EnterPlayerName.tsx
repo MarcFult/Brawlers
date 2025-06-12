@@ -37,7 +37,7 @@ const EnterPlayerName: React.FC = () => {
 
     try {
       const resp = await fetch(
-        `http://localhost:8080/players/user/${userId}`,
+        `http://10.0.40.186:8080/players/user/${userId}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -46,7 +46,7 @@ const EnterPlayerName: React.FC = () => {
       );
 
       if (resp.ok) {
-        setSuccess(true);
+        setSuccess(true);local
         // After 1s, redirect to login
         setTimeout(() => navigate('/login', { replace: true }), 1000);
       } else {

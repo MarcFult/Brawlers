@@ -24,7 +24,8 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      const resp = await fetch('http://localhost:8080/auth/register', {
+      //10.0.40.186
+      const resp = await fetch('http://10.0.40.186:8080/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: pw }),

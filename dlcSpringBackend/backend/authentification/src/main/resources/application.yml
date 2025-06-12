@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/brawlingdb
+    url: jdbc:postgresql://10.0.40.186:5432/brawlingdb
     username: squirter
     password: squirt123
     driver-class-name: org.postgresql.Driver

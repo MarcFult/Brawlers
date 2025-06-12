@@ -147,8 +147,8 @@ export default class BoxScene extends Phaser.Scene {
       runChildUpdate: true
     });
 
-    // this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
-    this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
+     this.socket = io("http://10.0.40.186:3001", { query: { lobbyId: this.lobbyId } });
+    //this.socket = io("http://localhost:3001", { query: { lobbyId: this.lobbyId } });
 
     //const socketHost = window.location.hostname;
     //this.socket = io(`http://${socketHost}:3001`, { query: { lobbyId: this.lobbyId } });

@@ -32,7 +32,7 @@ const PlayerPage: React.FC = () => {
       return;
     }
     fetch(
-      `http://localhost:8080/auth/user?email=${encodeURIComponent(email)}`,
+      `http://10.0.40.186:8080/auth/user?email=${encodeURIComponent(email)}`,
       { credentials: 'include' }
     )
       .then(r => r.json())
@@ -43,7 +43,7 @@ const PlayerPage: React.FC = () => {
   // Once we have a userId, fetch the Player record
   useEffect(() => {
     if (userId === null) return;
-    fetch(`http://localhost:8080/players/user/${userId}`, {
+    fetch(`http://10.0.40.186:8080/players/user/${userId}`, {
       credentials: 'include',
       headers: { Accept: 'application/json' },
     })
@@ -101,7 +101,7 @@ const PlayerPage: React.FC = () => {
   }, [player]);
 
   const handleLogout = async () => {
-    await fetch('http://localhost:8080/auth/logout', {
+    await fetch('http://10.0.40.186:8080/auth/logout', {
       method: 'POST',
       credentials: 'include',
     }).catch(() => {});
@@ -118,38 +118,39 @@ const PlayerPage: React.FC = () => {
   }
 
   return (
-    <main className="player-page">
-      {/* invisible hit-area over the “C” box */}
-      <button
-        className="logout-button"
-        onClick={handleLogout}
-        aria-label="Logout"
-      />
+      <main className="player-page">
+        {/* invisible hit-area over the “C” box */}
+        <button
+            className="logout-button"
+            onClick={handleLogout}
+        >
+          Logout
+        </button>
 
-      {/* Header pinned to the top-center of the 800×800 board */}
-      <header className="player-header" style={{color: '#fff'}}>
-        <h1>Welcome, {player.name}</h1>
-        <div className="stats">
-          {/* <span>ECTS: {player.ects}</span>
+        {/* Header pinned to the top-center of the 800×800 board */}
+        <header className="player-header" style={{color: '#fff'}}>
+          <h1>Welcome, {player.name}</h1>
+          <div className="stats">
+            {/* <span>ECTS: {player.ects}</span>
           <span>
             Levels:{' '}
             {player.levels.length
               ? player.levels.join(', ')
               : 'None'}
           </span> */}
-        </div>
-      </header>
+          </div>
+        </header>
 
-      {/* Phaser container sits 20px above the bottom */}
-      <div ref={containerRef} className="game-container" />
+        {/* Phaser container sits 20px above the bottom */}
+        <div ref={containerRef} className="game-container"/>
 
-      {/* invisible hit-area over the “Lobbys” frame */}
-      <button
-        className="lobby-button"
-        onClick={handleLobby}
-        aria-label="Go to Lobby"
-      />
-    </main>
+        {/* invisible hit-area over the “Lobbys” frame */}
+        <button
+            className="lobby-button"
+            onClick={handleLobby}
+            aria-label="Go to Lobby"
+        />
+      </main>
   );
 };
 

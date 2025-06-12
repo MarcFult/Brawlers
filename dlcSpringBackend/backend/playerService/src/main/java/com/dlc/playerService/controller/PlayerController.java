@@ -62,4 +62,13 @@ public class PlayerController {
         Player newPlayer = svc.createPlayer(userId, name);
         return ResponseEntity.ok(newPlayer);
     }
+
+    @PostMapping("/user/{userId}/buyEcts")
+    public ResponseEntity<Player> buyEcts(
+            @PathVariable Long userId,
+            @RequestBody Map<String, Object> body) {
+
+        int amount = (int) body.get("amount");
+        return ResponseEntity.ok(svc.buyEcts(userId, amount));
+    }
 }

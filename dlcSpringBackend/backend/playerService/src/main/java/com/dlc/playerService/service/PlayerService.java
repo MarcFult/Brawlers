@@ -70,4 +70,15 @@ public class PlayerService {
         // levels defaults to empty
         return repo.save(player);
     }
+
+    @Transactional
+    public Player buyEcts(Long userId, int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+
+        Player player = getByUserId(userId);
+        player.setEcts(player.getEcts() + amount);
+        return repo.save(player);
+    }
 }

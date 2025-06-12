@@ -112,6 +112,14 @@ const PlayerPage: React.FC = () => {
     window.location.href = '/lobby.html';
   };
 
+  const goToShop = () => {
+    if (userId !== null) {
+      navigate('/shop', { state: { userId } });
+    } else {
+      alert('User-ID fehlt');
+    }
+  };
+
 
   if (player === null) {
     return <div className="loading">Loading player…</div>;
@@ -130,7 +138,23 @@ const PlayerPage: React.FC = () => {
       <header className="player-header" style={{color: '#fff'}}>
         <h1>Welcome, {player.name}</h1>
         <div className="stats">
-          {/* <span>ECTS: {player.ects}</span>
+
+          <button
+              onClick={goToShop}
+              style={{
+                marginTop: '10px',
+                padding: '8px 16px',
+                fontSize: '16px',
+                cursor: 'pointer',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: '#4CAF50',
+                color: 'white',
+              }}
+          >
+            Zum Shop
+          </button>
+            {/* <span>ECTS: {player.ects}</span>
           <span>
             Levels:{' '}
             {player.levels.length
@@ -141,13 +165,13 @@ const PlayerPage: React.FC = () => {
       </header>
 
       {/* Phaser container sits 20px above the bottom */}
-      <div ref={containerRef} className="game-container" />
+      <div ref={containerRef} className="game-container"/>
 
       {/* invisible hit-area over the “Lobbys” frame */}
       <button
-        className="lobby-button"
-        onClick={handleLobby}
-        aria-label="Go to Lobby"
+          className="lobby-button"
+          onClick={handleLobby}
+          aria-label="Go to Lobby"
       />
     </main>
   );

@@ -7,7 +7,7 @@ import PlayerPage from './login/PlayerPage';
 import Register from './register/Register';
 import EnterPlayerName from './enterPlayerName/EnterPlayerName';
 import Game from "./components/Game.tsx";
-
+import Shop from "./shop/Shop.tsx";
 
 const App: React.FC = () => (
   <HashRouter>
@@ -18,6 +18,7 @@ const App: React.FC = () => (
       <Route path="/choose-name" element={<EnterPlayerName />} />
         <Route path="/game" element={<Game />} />
         <Route path="*" element={<Navigate to="/register" replace />} />
+        <Route path="/shop" element={<Shop/>} />
     </Routes>
   </HashRouter>
 );

@@ -134,7 +134,7 @@ const Shop = () => {
         if (!userId) return;
 
         try {
-            const response = await fetch(`http://localhost:8080/players/user/${userId}/buy-ects`, {
+            const response = await fetch(`http://localhost:8080/players/user/${userId}/buyEcts`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -187,6 +187,7 @@ const Shop = () => {
                     >
                         <img
                             src={item.sprite}
+
                             alt={item.name}
                             className="shop-item-sprite"
                         />

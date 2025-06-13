@@ -125,7 +125,11 @@ export default class BoxScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, 1134, 1110);
     this.physics.world.setBounds(53, 160, 1022, 900);
 
-    this.box = this.physics.add.sprite(30, 30, `${this.selectedSkin}_front`);
+    const x = Math.floor(Math.random() * 900);
+    const y = Math.floor(Math.random() * 900);
+
+    this.box = this.physics.add.sprite(x, y, `${this.selectedSkin}_front`);
+
     this.box.setBounce(0.2);
     this.box.setCollideWorldBounds(true);
 

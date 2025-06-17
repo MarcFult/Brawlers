@@ -91,6 +91,21 @@ const Shop = () => {
         }
     }, [userId]);
 
+    useEffect(() => {
+        const ectsUpdated = localStorage.getItem('ectsUpdated');
+        if (ectsUpdated === 'true' && userId !== null) {
+            localStorage.removeItem('ectsUpdated');
+            fetch(`http://localhost:8080/players/user/${userId}`, {
+                credentials: 'include',
+                headers: { Accept: 'application/json' },
+            })
+                .then(res => res.json())
+                .then(data => setBalance(data.ects))
+                .catch(err => console.error('Fehler beim ECTS-Update:', err));
+        }
+    }, [userId]);
+
+
     const skinItems = skinNames.map((skinName, index) => ({
         id: index + 1,
         name: skinName,
@@ -132,13 +147,12 @@ const Shop = () => {
                 },
                 body: JSON.stringify({
                     objectName: item.name,
-                    cost: item.price
+                    cost: item.price,
                 }),
             });
 
             if (!response.ok) throw new Error('Purchase failed');
 
-            // Refresh player data after purchase
             const [updatedPlayer, updatedGameObjects, updatedLevels] = await Promise.all([
                 fetch(`http://localhost:8080/players/user/${userId}`, {
                     credentials: 'include',
@@ -199,21 +213,43 @@ const Shop = () => {
 
     return (
         <div className="shop-container">
-            <div className="shop-header">
-                <div className="balance-display">{balance}</div>
+
+
+            {/* Balance */}
+            <div className="balance-display">{balance}</div>
+
+            {/* Buy ECTS Button (fixe Position, nicht im Header) */}
+            <button
+                className="buy-dollar-button invisible-button"
+                onClick={() => {
+                    if (userId !== null) {
+                        localStorage.setItem('userId', userId.toString());
+                        window.location.href = "src/shop/buy-ects.html";
+                    }
+                }}
+            >
+                Buy ECTS
+            </button>
+
+            {/* Page Buttons (fixe Position) */}
+            <div className="page-buttons-vertical">
                 <button
-                    className="buy-dollar-button"
-                    onClick={() => {
-                        if (userId !== null) {
-                            localStorage.setItem('userId', userId.toString());
-                            window.location.href = "src/shop/buy-ects.html";
-                        }
-                    }}
+                    className="invisible-button"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 0}
                 >
-                    Buy ECTS
+                    ↑
+                </button>
+                <button
+                    className="invisible-button"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage >= totalPages - 1}
+                >
+                    ↓
                 </button>
             </div>
 
+            {/* Shop Grid */}
             <div className="shop-grid">
                 {currentItems.map((item) => (
                     <div
@@ -240,22 +276,7 @@ const Shop = () => {
                 ))}
             </div>
 
-            <div className="pagination-controls">
-                <button
-                    onClick={() => goToPage(currentPage - 1)}
-                    disabled={currentPage === 0}
-                >
-                    Previous
-                </button>
-                <span>Page {currentPage + 1} of {totalPages}</span>
-                <button
-                    onClick={() => goToPage(currentPage + 1)}
-                    disabled={currentPage >= totalPages - 1}
-                >
-                    Next
-                </button>
-            </div>
-
+            {/* Purchase Popup */}
             {showPurchasePopup && purchasedItem && (
                 <div className="purchase-popup-overlay">
                     <div className="purchase-popup">
@@ -271,8 +292,13 @@ const Shop = () => {
                     </div>
                 </div>
             )}
+
+            {/* Loading */}
+            {isLoading && <div className="shop-loading">Loading...</div>}
         </div>
     );
+
+
 };
 
 export default Shop;

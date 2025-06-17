@@ -144,16 +144,16 @@ const PlayerPage: React.FC = () => {
               onClick={goToShop}
               style={{
                 position: 'relative',
-                top: '60px',      // 100px nach unten
-                left: '300px',     // 300px nach rechts
-                padding: '8.8px 17.6px', // 10% größer
-                fontSize: '17.6px',      // 10% größer als 16px
+                top: '60px',
+                left: '300px',
+                padding: '8.8px 17.6px',
+                fontSize: '17.6px',
                 cursor: 'pointer',
                 borderRadius: '6px',
                 border: 'none',
                 backgroundColor: "transparent",
                 color: 'transparent',
-                transform: 'scale(2)', // zusätzliche Skalierung (optional)
+                transform: 'scale(2)',
               }}
           >
             Zum Shop

@@ -8,26 +8,19 @@
     overflow: hidden;
 }
 
-/* 1. Header at top center */
-.shop-header {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    color: white;
-}
+
 
 /* Balance display */
 .balance-display {
     position: absolute;
-    top: 128px;
-    left: 173px;
+    top: 148px;
+    left: 573px;
     font-size: 14px;
     background: transparent;
     padding: 8px 16px;
     border-radius: 8px;
     display: inline-block;
+    color: white;
 }
 
 

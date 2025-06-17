@@ -109,8 +109,15 @@ const PlayerPage: React.FC = () => {
   };
 
   const handleLobby = () => {
-    window.location.href = '/lobby.html';
-  };
+    if (userId !== null) {
+      // UserId im sessionStorage speichern
+      sessionStorage.setItem('userId', userId.toString());
+      // Dann zur Lobby wechseln (ohne UserId in URL)
+      window.location.href = '/lobby.html';
+    } else {
+      alert('User-ID fehlt');
+    }
+  }
 
   const goToShop = () => {
     if (userId !== null) {

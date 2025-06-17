@@ -78,25 +78,96 @@
         .copy-btn:hover {
             background: #555;
         }
+        option:disabled {
+            color: #666;
+        }
     </style>
 </head>
 <body>
 <h1>DLC LOBBY</h1>
 
+<!--
+  **********************************************
+  * Die User-ID wird vom PlayerPage-Komponenten *
+  * über sessionStorage bereitgestellt und hier *
+  * nur empfangen, aber nicht weiter verwendet. *
+  * Sie dient lediglich der Identifikation.     *
+  **********************************************
+-->
+<script>
+    // User-ID aus sessionStorage holen (wird von PlayerPage.tsx gesetzt)
+    const userId = sessionStorage.getItem('userId');
+    console.log('Empfangene User-ID:', userId); // Nur zu Debug-Zwecken
+
+    // Liste der verfügbaren Maps mit ihren Anzeigenamen
+    const availableMaps = [
+        { value: 'test_map', label: 'Sandbox (immer verfügbar)' },
+        { value: 'first_map', label: 'first_map' },
+        { value: 'second_map', label: 'second_map' },
+        { value: 'third_map', label: 'third_map' },
+        { value: 'ah', label: 'Altes_Hallenbad' },
+        { value: 'fourth_map', label: 'fourth_map' }
+    ];
+
+    // Funktion zum Laden der freigeschalteten GameObjects
+    async function loadUnlockedGameObjects() {
+        try {
+            const response = await fetch(`http://localhost:8080/players/user/${userId}/gameObjects`);
+            let gameObjects = [];
+
+            if (response.ok) {
+                gameObjects = await response.json();
+            }
+
+            // Immer freigeschaltete Maps ergänzen
+            const alwaysUnlocked = ['test_map', 'first_map', 'second_map'];
+            const unlockedSet = new Set([...gameObjects, ...alwaysUnlocked]);
+
+            updateMapSelect(Array.from(unlockedSet));
+        } catch (error) {
+            console.error('Fehler beim Laden der GameObjects:', error);
+
+            // Fallback: Nur die immer verfügbaren Maps
+            updateMapSelect(['test_map', 'first_map', 'second_map']);
+        }
+    }
+
+
+    // Funktion zum Aktualisieren der Map-Auswahl
+    function updateMapSelect(unlockedItems) {
+        const mapSelect = document.getElementById('mapSelect');
+
+        // Leere das Select-Element
+        mapSelect.innerHTML = '';
+
+        // Füge Optionen hinzu
+        availableMaps.forEach(map => {
+            const option = document.createElement('option');
+            option.value = map.value;
+            option.textContent = map.label;
+
+
+            if (map.value !== 'test_map' && !unlockedItems.includes(map.value)) {
+                option.disabled = true;
+                option.textContent += ' (nicht freigeschaltet)';
+            }
+
+            mapSelect.appendChild(option);
+        });
+    }
+
+    // Beim Laden der Seite die GameObjects laden
+    document.addEventListener('DOMContentLoaded', loadUnlockedGameObjects);
+</script>
+
 <div class="section">
     <h3>Neue Lobby erstellen</h3>
     <input type="number" id="maxPlayers" placeholder="Max Spieler" value="4" min="2" max="10" />
 
-    <select id="mapSelect" >
-        <option value="test_map">Sandbox</option>
-        <option value="first_map">first_map</option>
-        <option value="second_map">second_map</option>
-        <option value="third_map">third_map</option>
-        <option value="ah">Altes_Hallenbad</option>
-        <option value="fourth_map">fourth_map</option>
+    <select id="mapSelect">
+        <!-- Wird dynamisch befüllt -->
     </select>
     <button onclick="createLobby()">Lobby erstellen</button>
-
 </div>
 
 <div class="section">
@@ -111,13 +182,10 @@
     <p id="waitingStatus">Warte auf Spieler...</p>
     <p id="lobbyStatus" style="font-size: 20px; color: #aaa;"></p>
     <p id="countdown" style="font-size: 28px; color: #ff0000; font-weight: bold;"></p>
-    <!--  <button id="startGameBtn" onclick="manualStart()" style="display: none;">Manuell starten</button> geht nicht upsi-->
 </div>
 
 <script>
     const socket = io("http://localhost:3001");
-    //const socket = io("http://10.0.40.186:3001");
-
     let currentLobbyId = null;
     let countdownTimer = null;
     let countdownSeconds = 25;
@@ -132,10 +200,6 @@
         if (typeof countdown === "number") {
             status.innerText += ` – Spiel startet in ${countdown} Sekunden`;
         }
-        const text = countdown != null
-            ? `Spiel startet in ${countdown} Sekunden…`
-            : `Spieler: ${players}/${maxPlayers}`;
-        document.getElementById("statusText").innerText = text;
     });
 
     socket.on("lobbyUpdated", (lobby) => {
@@ -148,38 +212,27 @@
         callback(Array.from(lobbies.values()));
     });
 
-
     socket.on("gameStart", ({ lobbyId, map }) => {
-
         console.log("Spielstart für Lobby:", lobbyId);
         console.log("Starte Spiel mit Map GS:", map);
-
-        // Weiterleitung zur Phaser-Game-Seite
-        window.location.href = `/#/game?lobbyId=${lobbyId}&map=${map}`; // /#/game?
-
+        window.location.href = `/#/game?lobbyId=${lobbyId}&map=${map}`;
     });
-
 
     socket.on("startGame", ({ lobbyId, map}) => {
         console.log("Starte Spiel mit Map SG:", map);
         if (lobbyId === currentLobbyId) {
-
-            window.location.href = `/#/game?lobbyId=${lobbyId}&map=${map}`; // /#/game?
-
+            window.location.href = `/#/game?lobbyId=${lobbyId}&map=${map}`;
         }
     });
 
     socket.on("disconnect", () => {
         console.log("Spieler getrennt:", socket.id);
-
-        // Suche Lobby und entferne Spieler
         for (const [id, lobby] of lobbyManager.lobbies.entries()) {
             if (lobby.players.has(socket.id)) {
                 lobbyManager.leaveLobby(id, socket);
                 break;
             }
         }
-
         io.emit("lobbyListUpdate", lobbyManager.getLobbies());
     });
 
@@ -193,11 +246,14 @@
         socket.emit("lobbyListUpdate", lobbyList);
     });
 
-
-
     function createLobby() {
         const maxPlayers = parseInt(document.getElementById("maxPlayers").value);
         const selectedMap = document.getElementById("mapSelect").value;
+
+        if (document.getElementById("mapSelect").options[document.getElementById("mapSelect").selectedIndex].disabled) {
+            alert("Diese Map ist nicht freigeschaltet!");
+            return;
+        }
 
         socket.emit("createLobby", {
             name: "DLC Match",
@@ -235,10 +291,8 @@
                     <button onclick="joinLobby('${lobby.id}')">Beitreten</button>
                 </div>
             `;
-
             container.appendChild(lobbyElement);
         });
-
     }
 
     function copyLobbyId(lobbyId) {
@@ -255,7 +309,6 @@
 
         currentLobbyId = lobbyId;
         socket.emit("joinLobby", { lobbyId }, (response) => {
-            console.log("Join-Response:", response); // << DEBUG
             if (response.success) {
                 showWaitingRoom(lobbyId);
             } else {
@@ -268,7 +321,6 @@
         document.getElementById("waitingRoom").style.display = "block";
         document.getElementById("waitingStatus").textContent = `Lobby-ID: ${lobbyId} – Warte auf Spieler...`;
         document.getElementById("countdown").textContent = "";
-        document.getElementById("startGameBtn").style.display = "none";
 
         socket.emit("getLobbies", (lobbies) => {
             const lobby = lobbies.find(l => l.id === lobbyId);
@@ -284,11 +336,6 @@
             startCountdown();
         } else {
             stopCountdown();
-            if (lobby.currentPlayers >= 2) {
-                document.getElementById("startGameBtn").style.display = "inline-block";
-            } else {
-                document.getElementById("startGameBtn").style.display = "none";
-            }
         }
     }
 
@@ -319,44 +366,11 @@
         }
     }
 
-    function manualStart() {
-        const selectedMap = document.getElementById("mapSelect").value;
-        if (currentLobbyId) {
-            socket.emit("startGame", { lobbyId: currentLobbyId });
-        }
-        socket.emit("startGame", {
-            lobbyId: currentLobbyId,
-            map: selectedMap
-        });
-
-    }
-
-    function handlePlayerLeaveLobby(socket, lobbyId) {
-        const lobby = lobbies.get(lobbyId);
-        if (!lobby) return;
-
-        lobby.currentPlayers--;
-
-        if (lobby.currentPlayers <= 0) {
-            // Starte 60s Timer zur Löschung
-            lobby.timeoutId = setTimeout(() => {
-                console.log(`Lobby ${lobbyId} gelöscht (inaktiv).`);
-                lobbies.delete(lobbyId);
-                io.emit("lobbyListUpdate", Array.from(lobbies.values()));
-            }, 360000); // 60 Sekunden
-        }
-
-        // Update alle Clients
-        io.emit("lobbyListUpdate", Array.from(lobbies.values()));
-    }
-
     function requestLobbyList() {
-        console.log("Lobbys werden aktualisiert...");
         socket.emit("getLobbies", (lobbies) => {
+            renderLobbies(lobbies);
         });
     }
-
 </script>
-
 </body>
 </html>

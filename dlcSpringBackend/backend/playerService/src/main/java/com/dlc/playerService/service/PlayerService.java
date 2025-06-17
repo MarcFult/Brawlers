@@ -67,7 +67,9 @@ public class PlayerService {
         player.setEcts(50);
         player.getGameObjects().add("caretaker");
         player.getGameObjects().add("pepe");
-        player.getGameObjects().add("alien");
+
+
+
         // levels defaults to empty
         return repo.save(player);
     }
@@ -83,11 +85,10 @@ public class PlayerService {
         return repo.save(player);
     }
 
-    public Player update(Long userId, String name, int ects, List<String> levels){
+    public Player update(Long userId, String name){
         Player player = getByUserId(userId);
         player.setName(name);
-        player.setEcts(ects);
-        player.setLevels(levels);
+
         return repo.save(player);
     }
 

@@ -128,11 +128,12 @@ const PlayerPage: React.FC = () => {
   return (
     <main className="player-page">
       {/* invisible hit-area over the “C” box */}
-      <button
-        className="logout-button"
-        onClick={handleLogout}
-        aria-label="Logout"
-      />
+   <button
+  className="logout-button"
+  onClick={handleLogout}
+>
+  Logout
+  </button>
 
       {/* Header pinned to the top-center of the 800×800 board */}
       <header className="player-header" style={{color: '#fff'}}>

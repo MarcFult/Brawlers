@@ -46,19 +46,39 @@
   outline:2px dashed cyan;
 }
 
-/* 4. Logout hit-area */
+/* 4. Logout hit-area → real button */
+:root {
+
+  --stroke: 8px;
+}
 .logout-button {
   position: absolute;
+  top: 65px;
   right: 20px;
-  top:   20px;
-  width: 40px;
-  height:40px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
 
-  outline:2px dashed red;
+ 
+  padding: calc(var(--stroke) / 2) calc(var(--stroke) * 3);
+  background: transparent;          
+  
+  color: #ffffff;               /* white text */
+  font-family: "Press Start 2P", monospace;
+  font-size: 14px;
+  text-transform: uppercase;
+  line-height: 1;
+
+  
+  border: var(--stroke) solid #ffffff;
+  border-radius: 0;             
+  box-sizing: content-box;      
+  image-rendering: pixelated;   
+
+  cursor: pointer;
+  transition: filter 120ms;
 }
+
+/* simple states */
+.logout-button:hover  { filter: brightness(1.15); }
+.logout-button:active { filter: brightness(0.8);  }
 
 /* 5. Loading fallback centered in board */
 .loading {

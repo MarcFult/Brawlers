@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>ECTS kaufen</title>
     <style>
         body {
@@ -39,13 +39,19 @@
         button:hover {
             background-color: #666;
         }
+        p {
+            margin: 10px 0 0 0;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 <h1>ECTS kaufen</h1>
 <div class="container">
     <label for="amount">Anzahl ECTS:</label>
-    <input type="number" id="amount" placeholder="z. B. 500" />
+    <input type="number" id="amount" placeholder="z. B. 500" oninput="updatePrice()" />
+
+    <p>Preis: <span id="price">0,00</span> €</p>
 
     <label for="card">Kreditkarten Nummer:</label>
     <input type="text" id="card" placeholder="1234 5678 9012 3456" />
@@ -54,6 +60,17 @@
 </div>
 
 <script>
+    function updatePrice() {
+        const amount = parseInt(document.getElementById('amount').value, 10);
+        const priceElem = document.getElementById('price');
+        if (isNaN(amount) || amount <= 0) {
+            priceElem.textContent = "0,00";
+            return;
+        }
+        const euro = amount / 20;
+        priceElem.textContent = euro.toFixed(2).replace('.', ','); // Komma als Dezimaltrennzeichen
+    }
+
     function handlePurchase() {
         const amount = document.getElementById('amount').value;
         if (!amount || amount <= 0) {
@@ -61,7 +78,6 @@
             return;
         }
 
-        // Save to localStorage and redirect immediately
         localStorage.setItem('newECTS', amount);
         window.location.href = "/#/shop";
     }

@@ -143,34 +143,42 @@ const PlayerPage: React.FC = () => {
           <button
               onClick={goToShop}
               style={{
-                marginTop: '10px',
-                padding: '8px 16px',
-                fontSize: '16px',
+                position: 'relative',
+                top: '60px',      // 100px nach unten
+                left: '300px',     // 300px nach rechts
+                padding: '8.8px 17.6px', // 10% größer
+                fontSize: '17.6px',      // 10% größer als 16px
                 cursor: 'pointer',
                 borderRadius: '6px',
                 border: 'none',
-                backgroundColor: '#4CAF50',
-                color: 'white',
+                backgroundColor: "transparent",
+                color: 'transparent',
+                transform: 'scale(2)', // zusätzliche Skalierung (optional)
               }}
           >
             Zum Shop
           </button>
-            {/* <span>ECTS: {player.ects}</span>
+
+
+
+        {/* <span>ECTS: {player.ects}</span>
           <span>
             Levels:{' '}
             {player.levels.length
               ? player.levels.join(', ')
               : 'None'}
           </span> */}
-        </div>
-      </header>
+      </div>
+    </header>
 
-      {/* Phaser container sits 20px above the bottom */}
-      <div ref={containerRef} className="game-container"/>
+  {/* Phaser container sits 20px above the bottom */
+  }
+  <div ref={containerRef} className="game-container"/>
 
-      {/* invisible hit-area over the “Lobbys” frame */}
-      <button
-          className="lobby-button"
+  {/* invisible hit-area over the “Lobbys” frame */
+  }
+  <button
+      className="lobby-button"
           onClick={handleLobby}
           aria-label="Go to Lobby"
       />

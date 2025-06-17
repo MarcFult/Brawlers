@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import './Shop.css';
 
 const skinNames = ['pepe', 'Peter_H', 'ralph', 'fox', 'caretaker', 'alien'];
+const maps = ['third_map', 'ah', 'fourth_map'];
 const ITEMS_PER_PAGE = 9;
 
 const Shop = () => {
@@ -41,7 +42,7 @@ const Shop = () => {
         const fetchPlayerData = async () => {
             try {
                 setIsLoading(true);
-                const [playerRes, itemsRes] = await Promise.all([
+                const [playerRes, gameObjectsRes, levelsRes] = await Promise.all([
                     fetch(`http://localhost:8080/players/user/${userId}`, {
                         credentials: 'include',
                         headers: { Accept: 'application/json' },
@@ -49,18 +50,25 @@ const Shop = () => {
                     fetch(`http://localhost:8080/players/user/${userId}/gameObjects`, {
                         credentials: 'include',
                         headers: { Accept: 'application/json' },
-                    })
+                    }),
+                    fetch(`http://localhost:8080/players/user/${userId}/levels`, {
+                        credentials: 'include',
+                        headers: { Accept: 'application/json' },
+                    }),
                 ]);
 
-                if (!playerRes.ok || !itemsRes.ok) throw new Error('Failed to fetch player data');
+                if (!playerRes.ok || !gameObjectsRes.ok || !levelsRes.ok) {
+                    throw new Error('Failed to fetch player data');
+                }
 
-                const [playerData, items] = await Promise.all([
+                const [playerData, gameObjects, levels] = await Promise.all([
                     playerRes.json(),
-                    itemsRes.json()
+                    gameObjectsRes.json(),
+                    levelsRes.json(),
                 ]);
 
                 setBalance(playerData.ects);
-                setOwnedItems(items);
+                setOwnedItems([...gameObjects, ...levels]);
             } catch (error) {
                 console.error('Error fetching player data:', error);
                 alert('Failed to load player data');
@@ -68,6 +76,7 @@ const Shop = () => {
                 setIsLoading(false);
             }
         };
+
         fetchPlayerData();
     }, [userId, navigate]);
 
@@ -75,28 +84,39 @@ const Shop = () => {
         const newECTS = localStorage.getItem('newECTS');
         if (newECTS && userId !== null) {
             localStorage.removeItem('newECTS');
-            const amount = parseInt(newECTS, 10); // parseInt to ensure it's a number
+            const amount = parseInt(newECTS, 10);
             if (!isNaN(amount) && amount > 0) {
                 handleBuyCoins(amount);
             }
         }
     }, [userId]);
 
-    const items = skinNames.map((skinName, index) => ({
+    const skinItems = skinNames.map((skinName, index) => ({
         id: index + 1,
         name: skinName,
         sprite: `src/assets/char/${skinName}_left.png`,
         price: 100 + (index % 3) * 50,
-        rarity: ['common', 'rare', 'epic', 'legendary'][index % 4],
+        type: 'skin',
     }));
 
-    const handleItemClick = async (item: typeof items[0]) => {
+    const mapItems = maps.map((mapName, index) => ({
+        id: 100 + index,
+        name: mapName,
+        sprite: `src/assets/${mapName}.png`,
+        price: 10 + index * 10,
+        type: 'level',
+    }));
+
+    const allItems = [...skinItems, ...mapItems];
+
+    const handleItemClick = async (item: typeof allItems[0]) => {
         if (!userId) return;
 
         if (ownedItems.includes(item.name)) {
             alert(`You already own ${item.name}!`);
             return;
         }
+
         if (balance < item.price) {
             alert('Nicht genügend ECTS. Bitte kaufen Sie zuerst ECTS.');
             return;
@@ -106,22 +126,36 @@ const Shop = () => {
             const response = await fetch(`http://localhost:8080/players/user/${userId}/purchase`, {
                 method: 'POST',
                 credentials: 'include',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify({ objectName: item.name, cost: item.price }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify({
+                    objectName: item.name,
+                    cost: item.price
+                }),
             });
 
             if (!response.ok) throw new Error('Purchase failed');
 
-            const [updatedPlayer, updatedItems] = await Promise.all([
-                response.json(),
+            // Refresh player data after purchase
+            const [updatedPlayer, updatedGameObjects, updatedLevels] = await Promise.all([
+                fetch(`http://localhost:8080/players/user/${userId}`, {
+                    credentials: 'include',
+                    headers: { Accept: 'application/json' },
+                }).then(res => res.json()),
                 fetch(`http://localhost:8080/players/user/${userId}/gameObjects`, {
                     credentials: 'include',
                     headers: { Accept: 'application/json' },
-                }).then(res => res.json())
+                }).then(res => res.json()),
+                fetch(`http://localhost:8080/players/user/${userId}/levels`, {
+                    credentials: 'include',
+                    headers: { Accept: 'application/json' },
+                }).then(res => res.json()),
             ]);
 
             setBalance(updatedPlayer.ects);
-            setOwnedItems(updatedItems);
+            setOwnedItems([...updatedGameObjects, ...updatedLevels]);
             setPurchasedItem(item);
             setShowPurchasePopup(true);
         } catch (error: any) {
@@ -141,7 +175,7 @@ const Shop = () => {
                     Accept: 'application/json',
                 },
                 credentials: 'include',
-                body: JSON.stringify({ amount: parseInt(amount.toString(), 10) }), //  force integer
+                body: JSON.stringify({ amount }),
             });
 
             if (!response.ok) throw new Error('ECTS-Kauf fehlgeschlagen');
@@ -154,8 +188,8 @@ const Shop = () => {
         }
     };
 
-    const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
-    const currentItems = items.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(allItems.length / ITEMS_PER_PAGE);
+    const currentItems = allItems.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
 
     const goToPage = (page: number) => {
         if (page >= 0 && page < totalPages) setCurrentPage(page);
@@ -167,16 +201,18 @@ const Shop = () => {
         <div className="shop-container">
             <div className="shop-header">
                 <div className="balance-display">{balance}</div>
+                <button
+                    className="buy-dollar-button"
+                    onClick={() => {
+                        if (userId !== null) {
+                            localStorage.setItem('userId', userId.toString());
+                            window.location.href = "src/shop/buy-ects.html";
+                        }
+                    }}
+                >
+                    Buy ECTS
+                </button>
             </div>
-
-            <button className="buy-dollar-button" onClick={() => {
-                if (userId !== null) {
-                    localStorage.setItem('userId', userId.toString());
-                    window.location.href = "src/shop/buy-ects.html"; //  Public path
-                }
-            }}>
-                Buy $
-            </button>
 
             <div className="shop-grid">
                 {currentItems.map((item) => (
@@ -187,10 +223,15 @@ const Shop = () => {
                     >
                         <img
                             src={item.sprite}
-
                             alt={item.name}
                             className="shop-item-sprite"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'src/assets/default.png';
+                            }}
                         />
+                        {item.type === 'level' && (
+                            <div className="shop-item-label">MAP</div>
+                        )}
                         <div className="shop-item-price">{item.price} ECTS</div>
                         {ownedItems.includes(item.name) && (
                             <div className="shop-item-owned">OWNED</div>
@@ -199,23 +240,35 @@ const Shop = () => {
                 ))}
             </div>
 
-            <div className="page-buttons-vertical">
-                {Array.from({ length: totalPages }).map((_, i) => (
-                    <button
-                        key={i}
-                        className={i === currentPage ? 'active' : ''}
-                        onClick={() => goToPage(i)}
-                    >
-                        {i + 1}
-                    </button>
-                ))}
+            <div className="pagination-controls">
+                <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 0}
+                >
+                    Previous
+                </button>
+                <span>Page {currentPage + 1} of {totalPages}</span>
+                <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage >= totalPages - 1}
+                >
+                    Next
+                </button>
             </div>
 
             {showPurchasePopup && purchasedItem && (
-                <div className="purchase-popup">
-                    <h2>Purchased {purchasedItem.name}!</h2>
-                    <img src={purchasedItem.sprite} alt={purchasedItem.name} />
-                    <button onClick={() => setShowPurchasePopup(false)}>Close</button>
+                <div className="purchase-popup-overlay">
+                    <div className="purchase-popup">
+                        <h2>Purchased {purchasedItem.name}!</h2>
+                        <img
+                            src={purchasedItem.sprite}
+                            alt={purchasedItem.name}
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'src/assets/default.png';
+                            }}
+                        />
+                        <button onClick={() => setShowPurchasePopup(false)}>Close</button>
+                    </div>
                 </div>
             )}
         </div>

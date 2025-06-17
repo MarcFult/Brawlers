@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PlayerService {
@@ -81,4 +82,14 @@ public class PlayerService {
         player.setEcts(player.getEcts() + amount);
         return repo.save(player);
     }
+
+    public Player update(Long userId, String name, int ects, List<String> levels){
+        Player player = getByUserId(userId);
+        player.setName(name);
+        player.setEcts(ects);
+        player.setLevels(levels);
+        return repo.save(player);
+    }
+
+
 }

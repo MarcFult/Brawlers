@@ -71,4 +71,25 @@ public class PlayerController {
         int amount = (int) body.get("amount");
         return ResponseEntity.ok(svc.buyEcts(userId, amount));
     }
+    @PostMapping("/user/{userId}/update")
+    public ResponseEntity<Player> update(
+            @PathVariable Long userId,
+            @RequestBody Map<String, Object> body){
+        //Extrahieren der Standard Player werte aus der Body
+        String name = (String) body.get("name");
+        int ects = (int) body.get("ects");
+
+
+        //Extrahieren der Levels aus der Body mit einem stream
+        List<String> levels= ((List<?>) body.get("levels"))
+                .stream()
+                .map(Object:: toString)
+                .toList();
+
+        Player updatedPlayer = svc.update(userId, name, ects, levels);
+        return ResponseEntity.ok(updatedPlayer);
+
+
+
+    }
 }

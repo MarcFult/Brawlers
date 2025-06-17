@@ -6,9 +6,9 @@ class LobbyManager {
         this.io = io;
     }
 
-    createLobby(name, maxPlayers, creatorSocket) {
+    createLobby(name, maxPlayers, creatorSocket, selectedMap) {
         const id = this._generateLobbyId();
-        const newLobby = new GameLobby(id, name, maxPlayers, this.io);
+        const newLobby = new GameLobby(id, name, maxPlayers, this.io, selectedMap);
         this.lobbies.set(id, newLobby);
         newLobby.addPlayer(creatorSocket);
         console.log(this.lobbies.keys())

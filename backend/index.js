@@ -16,8 +16,8 @@ const lobbyManager = new LobbyManager(io);
 io.on("connection", (socket) => {
   console.log("Spieler verbunden:", socket.id);
 
-  socket.on("createLobby", ({ name, maxPlayers }, callback) => {
-    const lobbyId = lobbyManager.createLobby(name, maxPlayers, socket);
+  socket.on("createLobby", ({ name, maxPlayers, selectedMap }, callback) => {
+    const lobbyId = lobbyManager.createLobby(name, maxPlayers, socket, selectedMap);
     callback({ success: true, lobbyId });
     io.emit("lobbyListUpdate", lobbyManager.getLobbies());
   });

@@ -8,6 +8,7 @@ body{margin:0;display:flex;justify-content:center;align-items:center}
   1. The pixel-art board
 *************************************************/
 .login-wrapper{
+
   /* size of the sprite */
   width:884px;
   height:560px;

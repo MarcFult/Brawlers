@@ -2,8 +2,8 @@ import Phaser from "phaser";
 
 export default class SkinSelectScene extends Phaser.Scene {
   private selectedSkin: string = "char1";
-  private selectedMap: string;
   private skins: string[] = ["ralph", "pepe", "Peter_H", "caretaker", "fox", "alien"];
+
 
   constructor() {
     super({ key: "SkinSelectScene" });
@@ -15,8 +15,7 @@ export default class SkinSelectScene extends Phaser.Scene {
     }
   }
 
-  create(data: { selectedMap: string }) {
-    this.selectedMap = data.selectedMap;
+  create() {
 
     this.add.text(400, 50, "Wähle deinen Charakter", { fontSize: "32px", color: "#fff" }).setOrigin(0.5);
 
@@ -24,12 +23,10 @@ export default class SkinSelectScene extends Phaser.Scene {
       const x = 300 + index * 150;
       const y = 200;
       const preview = this.add.image(x, y, `${skin}_preview`).setInteractive().setScale(1.5);
-
       preview.on("pointerdown", () => {
         this.selectedSkin = skin;
         this.scene.start("BoxScene", {
-          selectedMap: this.selectedMap,
-          selectedSkin: skin,
+          selectedSkin: skin
         });
       });
 

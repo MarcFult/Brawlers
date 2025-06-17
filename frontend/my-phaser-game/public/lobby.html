@@ -86,6 +86,15 @@
 <div class="section">
     <h3>Neue Lobby erstellen</h3>
     <input type="number" id="maxPlayers" placeholder="Max Spieler" value="4" min="2" max="10" />
+
+    <select id="mapSelect" >
+        <option value="test_map">Sandbox</option>
+        <option value="first_map">first_map</option>
+        <option value="second_map">second_map</option>
+        <option value="third_map">third_map</option>
+        <option value="ah">Altes_Hallenbad</option>
+        <option value="fourth_map">fourth_map</option>
+    </select>
     <button onclick="createLobby()">Lobby erstellen</button>
 
 </div>
@@ -140,16 +149,23 @@
     });
 
 
-    socket.on("gameStart", ({ lobbyId }) => {
+    socket.on("gameStart", ({ lobbyId, map }) => {
+
         console.log("Spielstart für Lobby:", lobbyId);
+        console.log("Starte Spiel mit Map GS:", map);
+
         // Weiterleitung zur Phaser-Game-Seite
-        window.location.href = `/#/game?lobbyId=${lobbyId}`; // /#/game?
+        window.location.href = `/#/game?lobbyId=${lobbyId}&map=${map}`; // /#/game?
+
     });
 
 
-    socket.on("startGame", ({ lobbyId }) => {
+    socket.on("startGame", ({ lobbyId, map}) => {
+        console.log("Starte Spiel mit Map SG:", map);
         if (lobbyId === currentLobbyId) {
-            window.location.href = `/#/game?lobbyId=${encodeURIComponent(lobbyId)}`; // /#/game?
+
+            window.location.href = `/#/game?lobbyId=${lobbyId}&map=${map}`; // /#/game?
+
         }
     });
 
@@ -181,10 +197,12 @@
 
     function createLobby() {
         const maxPlayers = parseInt(document.getElementById("maxPlayers").value);
+        const selectedMap = document.getElementById("mapSelect").value;
 
         socket.emit("createLobby", {
             name: "DLC Match",
-            maxPlayers
+            maxPlayers,
+            selectedMap
         }, (response) => {
             if (response.success) {
                 currentLobbyId = response.lobbyId;
@@ -278,16 +296,17 @@
         if (countdownTimer) return;
 
         countdownSeconds = 25;
+        const selectedMap = document.getElementById("mapSelect").value;
+
         document.getElementById("countdown").textContent = `Spiel startet in ${countdownSeconds}...`;
 
         countdownTimer = setInterval(() => {
             countdownSeconds--;
             document.getElementById("countdown").textContent = `Spiel startet in ${countdownSeconds}...`;
-
             if (countdownSeconds <= 0) {
                 clearInterval(countdownTimer);
                 countdownTimer = null;
-                socket.emit("startGame", { lobbyId: currentLobbyId });
+                socket.emit("startGame", { lobbyId: currentLobbyId, map: selectedMap});
             }
         }, 1000);
     }
@@ -301,9 +320,15 @@
     }
 
     function manualStart() {
+        const selectedMap = document.getElementById("mapSelect").value;
         if (currentLobbyId) {
             socket.emit("startGame", { lobbyId: currentLobbyId });
         }
+        socket.emit("startGame", {
+            lobbyId: currentLobbyId,
+            map: selectedMap
+        });
+
     }
 
     function handlePlayerLeaveLobby(socket, lobbyId) {
@@ -318,7 +343,7 @@
                 console.log(`Lobby ${lobbyId} gelöscht (inaktiv).`);
                 lobbies.delete(lobbyId);
                 io.emit("lobbyListUpdate", Array.from(lobbies.values()));
-            }, 60000); // 60 Sekunden
+            }, 360000); // 60 Sekunden
         }
 
         // Update alle Clients

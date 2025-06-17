@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import Phaser from 'phaser';
 import BoxScene from '../scenes/BoxScene';
-import MapSelectScene from "../scenes/MapSelectScene.ts";
 import SkinSelectScene from "../scenes/SkinSelectScene.ts";
 import DeathScene from "../scenes/DeathScene.ts";
 import WinScene from "../scenes/WinScene.ts";
@@ -13,8 +12,12 @@ const Game: React.FC = () => {
     const config = {
       type: Phaser.AUTO,
       parent: 'phaser-example',
-      width: 1134,
-      height: 1110,
+      scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 1134,
+        height: 1110
+      },
       physics: {
         default: 'arcade',
         arcade: {
@@ -22,7 +25,7 @@ const Game: React.FC = () => {
           debug: false
         }
       },
-      scene: [MapSelectScene, SkinSelectScene,BoxScene, DeathScene, WinScene]
+      scene: [ SkinSelectScene,BoxScene, DeathScene, WinScene]
     };
 
     const game = new Phaser.Game(config);

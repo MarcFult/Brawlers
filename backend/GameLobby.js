@@ -1,6 +1,6 @@
 class GameLobby {
 
-    constructor(id, name, maxPlayers, io) {
+    constructor(id, name, maxPlayers, io, selectedMap) {
         this.id = id;
         this.name = name;
         this.maxPlayers = maxPlayers;
@@ -8,7 +8,7 @@ class GameLobby {
         this.players = new Map();
         this.cleanupTimeout = null;
         this.lobbyManager = null;
-
+        this.selectedMap = selectedMap;
     }
 
     addPlayer(socket) {
@@ -234,7 +234,8 @@ class GameLobby {
         this.io.to(this.id).emit("lobbyStatusUpdate", {
             players: this.playerCount(),
             maxPlayers: this.maxPlayers,
-            countdown: this.currentCountdown
+            countdown: this.currentCountdown,
+            selectedMap: this.selectedMap
         });
 
         this.countdownInterval = setInterval(() => {
@@ -242,14 +243,16 @@ class GameLobby {
             this.io.to(this.id).emit("lobbyStatusUpdate", {
                 players: this.playerCount(),
                 maxPlayers: this.maxPlayers,
-                countdown: this.currentCountdown
+                countdown: this.currentCountdown,
+                selectedMap: this.selectedMap
             });
 
             if (this.currentCountdown <= 0) {
                 clearInterval(this.countdownInterval);
                 this.countdownInterval = null;
                 this.currentCountdown = null;
-                this.io.to(this.id).emit("gameStart", { lobbyId: this.id });
+                console.log("Sende gameStart mit Map:", this.selectedMap); // Debug
+                this.io.to(this.id).emit("gameStart", { lobbyId: this.id , map: this.selectedMap});
             }
         }, 1000);
     }

@@ -66,17 +66,23 @@ export default class BoxScene extends Phaser.Scene {
 
   init(data: any) {
     const urlParams = new URLSearchParams(window.location.search);
+    console.log(urlParams.get('map'))
     const lobbyIdFromUrl = urlParams.get("lobbyId");
-
-    this.selectedMap = data.selectedMap || 'first_map';
+    const url = new URL(window.location.href.replace(/#\/?/, "?")); // Handhabt Hash-Routing
+    this.selectedMap = url.searchParams.get('map') || 'first_map';
     this.selectedSkin = data.selectedSkin || 'char1'; // fallback
-
     this.lobbyId = lobbyIdFromUrl || "default";
+
+
+    console.log("BoxScene lädt:", {
+      map: this.selectedMap,
+      skin: this.selectedSkin
+    });
+
   }
 
   preload() {
     this.load.image("bullet", 'src/assets/bullet.png')
-
     //maps
     this.load.image("test_map", 'src/assets/roomSB.png')
     this.load.image("first_map", 'src/assets/first_map.png')
@@ -118,14 +124,15 @@ export default class BoxScene extends Phaser.Scene {
 
   create() {
 
-
-
     this.add.image(0, 0, this.selectedMap).setOrigin(0,0);
 
     this.cameras.main.setBounds(0, 0, 1134, 1110);
     this.physics.world.setBounds(53, 160, 1022, 900);
 
-    this.box = this.physics.add.sprite(30, 30, `${this.selectedSkin}_front`);
+    const x = Math.floor(Math.random() * 900);
+    const y = Math.floor(Math.random() * 900);
+
+    this.box = this.physics.add.sprite(x, y, `${this.selectedSkin}_front`);
     this.box.setBounce(0.2);
     this.box.setCollideWorldBounds(true);
 
@@ -369,13 +376,6 @@ export default class BoxScene extends Phaser.Scene {
       this.shieldZone = this.powerupGroup.create(0, 0, "shield").setVisible(true);
       this.placeZonesRandomly();
 
-      this.npc = this.physics.add.sprite(Phaser.Math.Between(100, 900), 170, "npcSprite");
-      this.npc.setCollideWorldBounds(true);
-      this.npc.setVelocityX(150);
-      this.npcDirection = 1; // 1 = rechts, -1 = links
-
-
-
       const tableBorders = this.physics.add.staticGroup();
 
       tableBorders.create(280, 600)
@@ -396,8 +396,6 @@ export default class BoxScene extends Phaser.Scene {
       this.physics.add.collider(this.box, tableBorders);
       this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());
       this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
-      this.physics.add.collider(this.npcBullets, tableBorders, (bullet) => bullet.destroy());
-
     }
 
     if (this.selectedMap == "ah"){
@@ -462,6 +460,8 @@ export default class BoxScene extends Phaser.Scene {
       this.physics.add.collider(this.box, tableBorders);
       this.physics.add.collider(this.playerBullets, tableBorders, (bullet) => bullet.destroy());
       this.physics.add.collider(this.enemyBullets, tableBorders, (bullet) => bullet.destroy());
+      this.physics.add.collider(this.npcBullets, tableBorders, (bullet) => bullet.destroy());
+
     }
 
     this.time.addEvent({

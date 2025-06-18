@@ -67,9 +67,7 @@ public class PlayerService {
         player.setEcts(50);
         player.getGameObjects().add("caretaker");
         player.getGameObjects().add("pepe");
-
-
-
+        player.getGameObjects().add("alien");
         // levels defaults to empty
         return repo.save(player);
     }
@@ -92,5 +90,16 @@ public class PlayerService {
         return repo.save(player);
     }
 
+
+
+    @Transactional
+    public Player addEcts(Long userId, int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("amount must be > 0");
+        }
+        Player player = getByUserId(userId);
+        player.setEcts(player.getEcts() + amount);
+        return repo.save(player); // persists & returns updated entity
+    }
 
 }

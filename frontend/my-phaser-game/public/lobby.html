@@ -85,6 +85,8 @@
 </head>
 <body>
 <h1>DLC LOBBY</h1>
+<h2 id="playerName" style="text-align:center;color:#ff6600;margin:-20px 0 30px"></h2>
+<h2 id="playerUserId" style="text-align:center;color:#ff6600;margin:-20px 0 30px"></h2>
 
 <!--
   **********************************************
@@ -163,11 +165,18 @@
 <div class="section">
     <h3>Neue Lobby erstellen</h3>
     <input type="number" id="maxPlayers" placeholder="Max Spieler" value="4" min="2" max="10" />
+    <button id="backBtn" onclick="returnToPlayerPage()">Zurück</button>
 
-    <select id="mapSelect">
-        <!-- Wird dynamisch befüllt -->
+    <select id="mapSelect" >
+        <option value="test_map">Sandbox</option>
+        <option value="first_map">first_map</option>
+        <option value="second_map">second_map</option>
+        <option value="third_map">third_map</option>
+        <option value="ah">Altes_Hallenbad</option>
+        <option value="fourth_map">fourth_map</option>
     </select>
     <button onclick="createLobby()">Lobby erstellen</button>
+
 </div>
 
 <div class="section">
@@ -182,10 +191,13 @@
     <p id="waitingStatus">Warte auf Spieler...</p>
     <p id="lobbyStatus" style="font-size: 20px; color: #aaa;"></p>
     <p id="countdown" style="font-size: 28px; color: #ff0000; font-weight: bold;"></p>
+    <!--  <button id="startGameBtn" onclick="manualStart()" style="display: none;">Manuell starten</button> geht nicht upsi-->
 </div>
 
 <script>
     const socket = io("http://localhost:3001");
+    //const socket = io("http://10.0.40.186:3001");
+
     let currentLobbyId = null;
     let countdownTimer = null;
     let countdownSeconds = 25;
@@ -200,6 +212,10 @@
         if (typeof countdown === "number") {
             status.innerText += ` – Spiel startet in ${countdown} Sekunden`;
         }
+        const text = countdown != null
+            ? `Spiel startet in ${countdown} Sekunden…`
+            : `Spieler: ${players}/${maxPlayers}`;
+        document.getElementById("statusText").innerText = text;
     });
 
     socket.on("lobbyUpdated", (lobby) => {
@@ -212,7 +228,9 @@
         callback(Array.from(lobbies.values()));
     });
 
+
     socket.on("gameStart", ({ lobbyId, map }) => {
+
         console.log("Spielstart für Lobby:", lobbyId);
         console.log("Starte Spiel mit Map GS:", map);
         window.location.href = `/#/game?lobbyId=${lobbyId}&map=${map}`;
@@ -227,12 +245,15 @@
 
     socket.on("disconnect", () => {
         console.log("Spieler getrennt:", socket.id);
+
+        // Suche Lobby und entferne Spieler
         for (const [id, lobby] of lobbyManager.lobbies.entries()) {
             if (lobby.players.has(socket.id)) {
                 lobbyManager.leaveLobby(id, socket);
                 break;
             }
         }
+
         io.emit("lobbyListUpdate", lobbyManager.getLobbies());
     });
 
@@ -245,6 +266,8 @@
         }));
         socket.emit("lobbyListUpdate", lobbyList);
     });
+
+
 
     function createLobby() {
         const maxPlayers = parseInt(document.getElementById("maxPlayers").value);
@@ -291,8 +314,10 @@
                     <button onclick="joinLobby('${lobby.id}')">Beitreten</button>
                 </div>
             `;
+
             container.appendChild(lobbyElement);
         });
+
     }
 
     function copyLobbyId(lobbyId) {
@@ -309,6 +334,7 @@
 
         currentLobbyId = lobbyId;
         socket.emit("joinLobby", { lobbyId }, (response) => {
+            console.log("Join-Response:", response); // << DEBUG
             if (response.success) {
                 showWaitingRoom(lobbyId);
             } else {
@@ -321,6 +347,7 @@
         document.getElementById("waitingRoom").style.display = "block";
         document.getElementById("waitingStatus").textContent = `Lobby-ID: ${lobbyId} – Warte auf Spieler...`;
         document.getElementById("countdown").textContent = "";
+        document.getElementById("startGameBtn").style.display = "none";
 
         socket.emit("getLobbies", (lobbies) => {
             const lobby = lobbies.find(l => l.id === lobbyId);
@@ -336,6 +363,11 @@
             startCountdown();
         } else {
             stopCountdown();
+            if (lobby.currentPlayers >= 2) {
+                document.getElementById("startGameBtn").style.display = "inline-block";
+            } else {
+                document.getElementById("startGameBtn").style.display = "none";
+            }
         }
     }
 
@@ -366,11 +398,68 @@
         }
     }
 
+    function manualStart() {
+        const selectedMap = document.getElementById("mapSelect").value;
+        if (currentLobbyId) {
+            socket.emit("startGame", { lobbyId: currentLobbyId });
+        }
+        socket.emit("startGame", {
+            lobbyId: currentLobbyId,
+            map: selectedMap
+        });
+
+    }
+
+    function handlePlayerLeaveLobby(socket, lobbyId) {
+        const lobby = lobbies.get(lobbyId);
+        if (!lobby) return;
+
+        lobby.currentPlayers--;
+
+        if (lobby.currentPlayers <= 0) {
+            // Starte 60s Timer zur Löschung
+            lobby.timeoutId = setTimeout(() => {
+                console.log(`Lobby ${lobbyId} gelöscht (inaktiv).`);
+                lobbies.delete(lobbyId);
+                io.emit("lobbyListUpdate", Array.from(lobbies.values()));
+            }, 360000); // 60 Sekunden
+        }
+
+        // Update alle Clients
+        io.emit("lobbyListUpdate", Array.from(lobbies.values()));
+    }
+
     function requestLobbyList() {
+        console.log("Lobbys werden aktualisiert...");
         socket.emit("getLobbies", (lobbies) => {
             renderLobbies(lobbies);
         });
     }
+
+         const raw = sessionStorage.getItem("dlc-player");
+        if (!raw) {
+            alert("Spieler-Daten fehlen – bitte neu einloggen");
+            window.location.href = "/login";
+         }
+        const player = JSON.parse(raw);
+
+    document.getElementById("playerName").textContent = player.name;
+    document.getElementById("playerUserId").textContent = player.userId;
+
+      function returnToPlayerPage () {
+      if (socket && socket.connected) socket.disconnect();
+
+      /* we already have the player object from sessionStorage */
+      const q = new URLSearchParams({
+        uid  : player.userId,
+        mail : player.email ?? ""      // add more fields if you like
+      });
+
+      window.location.href = `/#/player?${q.toString()}`;
+  }
+
+
 </script>
+
 </body>
 </html>

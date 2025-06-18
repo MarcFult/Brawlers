@@ -1,3 +1,4 @@
+// src/login/PlayerPage.tsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Phaser from 'phaser';
@@ -17,7 +18,6 @@ const PlayerPage: React.FC = () => {
   const { state } = useLocation() as {
     state?: { userId?: number; email?: string };
   };
-
   const [userId, setUserId] = useState<number | null>(state?.userId ?? null);
   const [email] = useState<string>(state?.email ?? '');
   const [player, setPlayer] = useState<Player | null>(null);
@@ -27,8 +27,7 @@ const PlayerPage: React.FC = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-
-  // Look up user ID by email if missing
+  // If no userId in state (e.g. after full page reload), look it up by email
   useEffect(() => {
     if (userId !== null) return;
     if (!email) {
@@ -43,7 +42,7 @@ const PlayerPage: React.FC = () => {
         .catch(() => navigate('/login', { replace: true }));
   }, [userId, email, navigate]);
 
-  // Fetch player data once we have a user ID
+  // Once we have a userId, fetch the Player record
   useEffect(() => {
     if (userId === null) return;
     fetch(`http://localhost:8080/players/user/${userId}`, {
@@ -55,10 +54,9 @@ const PlayerPage: React.FC = () => {
         .catch(console.error);
   }, [userId]);
 
-  // Set up Phaser canvas when player data is available
+  // Spin up Phaser with a transparent canvas when the player data arrives
   useEffect(() => {
     if (!player || !containerRef.current || gameRef.current) return;
-
     const cp = player;
 
     class DashboardScene extends Phaser.Scene {
@@ -112,7 +110,22 @@ const PlayerPage: React.FC = () => {
   };
 
   const handleLobby = () => {
-    window.location.href = '/lobby.html';
+    if (userId !== null) {
+      // UserId im sessionStorage speichern
+      sessionStorage.setItem('userId', userId.toString());
+      // Dann zur Lobby wechseln (ohne UserId in URL)
+      window.location.href = '/lobby.html';
+    } else {
+      alert('User-ID fehlt');
+    }
+  }
+
+  const goToShop = () => {
+    if (userId !== null) {
+      navigate('/shop', { state: { userId } });
+    } else {
+      alert('User-ID fehlt');
+    }
   };
 
   if (player === null) {
@@ -141,6 +154,41 @@ const PlayerPage: React.FC = () => {
                 <button className={activeTab === 'skins' ? 'active' : ''} onClick={() => setActiveTab('skins')}>Skins</button>
                 <button className={activeTab === 'levels' ? 'active' : ''} onClick={() => setActiveTab('levels')}>Levels</button>
               </div>
+      {/* Header pinned to the top-center of the 800×800 board */}
+      <header className="player-header" style={{color: '#fff'}}>
+        <h1>Welcome, {player.name}</h1>
+        <div className="stats">
+
+          <button
+              onClick={goToShop}
+              style={{
+                position: 'relative',
+                top: '60px',
+                left: '300px',
+                padding: '8.8px 17.6px',
+                fontSize: '17.6px',
+                cursor: 'pointer',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: "transparent",
+                color: 'transparent',
+                transform: 'scale(2)',
+              }}
+          >
+            Zum Shop
+          </button>
+
+
+
+        {/* <span>ECTS: {player.ects}</span>
+          <span>
+            Levels:{' '}
+            {player.levels.length
+              ? player.levels.join(', ')
+              : 'None'}
+          </span> */}
+      </div>
+    </header>
 
               <div className="inventory-content">
                 {activeTab === 'skins' && (

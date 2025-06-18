@@ -70,4 +70,15 @@ public class PlayerService {
         // levels defaults to empty
         return repo.save(player);
     }
+
+    @Transactional
+    public Player addEcts(Long userId, int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("amount must be > 0");
+        }
+        Player player = getByUserId(userId);
+        player.setEcts(player.getEcts() + amount);
+        return repo.save(player); // persists & returns updated entity
+    }
+
 }

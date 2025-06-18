@@ -1,3 +1,30 @@
+const SPRING_BASE = "http://localhost:8080";
+
+async function addStat(userId, stat, delta) {
+  if (!delta) return; // nothing to add
+
+  try {
+    const resp = await fetch(
+      `${SPRING_BASE}/players/user/${userId}/${stat}/add`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ amount: delta }),
+      }
+    );
+
+    if (!resp.ok) {
+      console.error(`PATCH ${resp.url} → HTTP ${resp.status}`);
+    }
+  } catch (e) {
+    console.error(`addStat(${userId}, ${stat}) → ${e.message}`);
+  }
+}
+
+
 class GameLobby {
 
     constructor(id, name, maxPlayers, io, selectedMap) {

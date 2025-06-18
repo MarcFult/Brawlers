@@ -62,4 +62,17 @@ public class PlayerController {
         Player newPlayer = svc.createPlayer(userId, name);
         return ResponseEntity.ok(newPlayer);
     }
+
+    @PatchMapping("/user/{userId}/ects/add")
+    public ResponseEntity<Player> addEcts(
+            @PathVariable Long userId,
+            @RequestBody Map<String, Integer> body) {
+
+        Integer amount = body.get("amount");
+        if (amount == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        Player updated = svc.addEcts(userId, amount);
+        return ResponseEntity.ok(updated);
+    }
 }

@@ -37,7 +37,7 @@ const EnterPlayerName: React.FC = () => {
 
     try {
       const resp = await fetch(
-        `http://localhost:8080/players/user/${userId}`,
+        `http://10.0.40.186:8080/players/user/${userId}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

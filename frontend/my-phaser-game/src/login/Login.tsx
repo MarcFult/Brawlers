@@ -25,7 +25,7 @@ const Login: React.FC = () => {
     setError(null);
 
     try {
-      const resp = await fetch('http://localhost:8080/auth/login', {
+      const resp = await fetch('http://10.0.40.186:8080/auth/login', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

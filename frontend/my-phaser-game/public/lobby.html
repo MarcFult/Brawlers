@@ -86,16 +86,6 @@
 <body>
 <h1>DLC LOBBY</h1>
 <h2 id="playerName" style="text-align:center;color:#ff6600;margin:-20px 0 30px"></h2>
-<h2 id="playerUserId" style="text-align:center;color:#ff6600;margin:-20px 0 30px"></h2>
-
-<!--
-  **********************************************
-  * Die User-ID wird vom PlayerPage-Komponenten *
-  * über sessionStorage bereitgestellt und hier *
-  * nur empfangen, aber nicht weiter verwendet. *
-  * Sie dient lediglich der Identifikation.     *
-  **********************************************
--->
 <script>
     // User-ID aus sessionStorage holen (wird von PlayerPage.tsx gesetzt)
     const userId = sessionStorage.getItem('userId');
@@ -114,7 +104,7 @@
     // Funktion zum Laden der freigeschalteten GameObjects
     async function loadUnlockedGameObjects() {
         try {
-            const response = await fetch(`http://localhost:8080/players/user/${userId}/gameObjects`);
+            const response = await fetch(`http://10.0.40.186:8080/players/user/${userId}/gameObjects`);
             let gameObjects = [];
 
             if (response.ok) {
@@ -168,13 +158,10 @@
     <button id="backBtn" onclick="returnToPlayerPage()">Zurück</button>
 
     <select id="mapSelect" >
-        <option value="test_map">Sandbox</option>
-        <option value="first_map">first_map</option>
-        <option value="second_map">second_map</option>
-        <option value="third_map">third_map</option>
-        <option value="ah">Altes_Hallenbad</option>
-        <option value="fourth_map">fourth_map</option>
+        <!-- Wird dynamisch befüllt -->
     </select>
+
+
     <button onclick="createLobby()">Lobby erstellen</button>
 
 </div>
@@ -195,8 +182,8 @@
 </div>
 
 <script>
-    const socket = io("http://localhost:3001");
-    //const socket = io("http://10.0.40.186:3001");
+    //const socket = io("http://localhost:3001");
+    const socket = io("http://10.0.40.186:3001");
 
     let currentLobbyId = null;
     let countdownTimer = null;

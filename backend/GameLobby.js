@@ -1,4 +1,4 @@
-const SPRING_BASE = "http://localhost:8080";
+const SPRING_BASE = "http://10.0.40.186:8080";
 
 async function addStat(userId, stat, delta) {
   if (!delta) return; // nothing to add

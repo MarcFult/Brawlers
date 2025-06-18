@@ -1,6 +1,6 @@
 import { Socket } from "socket.io-client";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = "http://10.0.40.186:8080";
 
 export default class WinScene extends Phaser.Scene {
   private socket!: Socket;

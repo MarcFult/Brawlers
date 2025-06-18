@@ -90,6 +90,429 @@
   color: #fff;
   font-family: "Press Start 2P", monospace;
 }
+button:focus {
 
-/* remove focus outline */
-button:focus { outline: none; }
+
+
+
+  outline: none;
+
+
+}
+
+
+
+
+
+/* 7. INVENTORY hit-area button (invisible but clickable) */
+
+
+.inventory-button {
+
+
+  position: absolute;
+
+
+  left: 30px;
+
+
+  top: 180px;
+
+
+  width: 340px;
+
+
+  height: 90px;
+
+
+  background: transparent;
+
+
+  border: none;
+
+
+  cursor: pointer;
+
+
+  z-index: 10;
+
+
+  outline: none; /* Remove debug outline if not needed */
+
+
+  /* outline: 2px dashed yellow; */ /* Enable for debug */
+
+
+}
+
+
+
+
+
+/* Optional: Alternate style toggle button */
+
+
+.inventory-toggle-button {
+
+
+  position: absolute;
+
+
+  top: 20px;
+
+
+  left: 20px;
+
+
+  width: 40px;
+
+
+  height: 40px;
+
+
+  background: transparent;
+
+
+  border: none;
+
+
+  cursor: pointer;
+
+
+  outline: 2px dashed lime; /* Debug only */
+
+
+}
+
+
+
+
+
+/* 8. Inventory Overlay */
+
+
+.inventory-overlay {
+
+
+  position: absolute;
+
+
+  top: 0;
+
+
+  left: 0;
+
+
+  width: 800px;
+
+
+  height: 800px;
+
+
+  background-color: rgba(0, 0, 0, 0.85);
+
+
+  z-index: 20;
+
+
+  padding-top: 120px;
+
+
+}
+
+
+
+
+
+/* 9. Close Inventory Button */
+
+
+.inventory-close-button {
+
+
+  position: absolute;
+
+
+  top: 20px;
+
+
+  right: 80px;
+
+
+  font-size: 24px;
+
+
+  color: white;
+
+
+  background: none;
+
+
+  border: none;
+
+
+  cursor: pointer;
+
+
+  z-index: 30;
+
+
+}
+
+
+
+
+
+/* 10. Inventory Tabs */
+
+
+.inventory-tabs {
+
+
+  position: absolute;
+
+
+  top: 130px;
+
+
+  left: 50%;
+
+
+  transform: translateX(-50%);
+
+
+  display: flex;
+
+
+  gap: 16px;
+
+
+  z-index: 10;
+
+
+}
+
+
+
+
+
+.inventory-tabs button {
+
+
+  padding: 6px 12px;
+
+
+  font-family: "Press Start 2P", monospace;
+
+
+  background-color: #222;
+
+
+  color: white;
+
+
+  border: 1px solid #888;
+
+
+  cursor: pointer;
+
+
+}
+
+
+
+
+
+.inventory-tabs button.active {
+
+
+  background-color: #448844;
+
+
+  border-color: #ffffff;
+
+
+}
+
+
+
+
+
+/* 11. Inventory Content */
+
+
+.inventory-content {
+
+
+  position: absolute;
+
+
+  top: 180px;
+
+
+  left: 50%;
+
+
+  transform: translateX(-50%);
+
+
+  width: 700px;
+
+
+  max-height: 360px;
+
+
+  overflow-y: auto;
+
+
+  color: white;
+
+
+  text-align: center;
+
+
+  z-index: 5;
+
+
+}
+
+
+
+
+
+/* 12. Skins grid */
+
+
+.skins-grid {
+
+
+  display: flex;
+
+
+  flex-wrap: wrap;
+
+
+  gap: 16px;
+
+
+  justify-content: center;
+
+
+}
+
+
+
+
+
+.skin-item {
+
+
+  cursor: pointer;
+
+
+  text-align: center;
+
+
+  width: 100px;
+
+
+}
+
+
+
+
+
+.skin-item img {
+
+
+  width: 100px;
+
+
+  height: auto;
+
+
+  border: 2px solid transparent;
+
+
+}
+
+
+
+
+
+.skin-item:hover img {
+
+
+  border-color: cyan;
+
+
+}
+
+
+
+
+
+/* 13. Levels list */
+
+
+.levels-list ul {
+
+
+  list-style: none;
+
+
+  padding: 0;
+
+
+  margin: 0;
+
+
+}
+
+
+
+
+
+.levels-list li {
+
+
+  margin-bottom: 8px;
+
+
+  font-size: 14px;
+
+
+}
+
+
+
+
+
+.selected-skin-display {
+
+
+  color: #00ffcc;
+
+
+  font-size: 14px;
+
+
+  margin-bottom: 12px;
+
+
+  text-align: center;
+
+
+}
+
+
+
+
+
+.skin-item.selected img {
+
+
+  border-color: lime;
+
+
+}

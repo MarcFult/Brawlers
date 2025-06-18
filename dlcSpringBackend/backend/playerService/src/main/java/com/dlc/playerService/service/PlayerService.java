@@ -64,7 +64,7 @@ public class PlayerService {
         Player player = new Player();
         player.setUserId(userId);
         player.setName(name);
-        player.setEcts(50);
+        player.setEcts(5);
         player.getGameObjects().add("caretaker");
         player.getGameObjects().add("pepe");
         player.getGameObjects().add("alien");

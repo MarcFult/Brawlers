@@ -43,15 +43,15 @@ const Shop = () => {
             try {
                 setIsLoading(true);
                 const [playerRes, gameObjectsRes, levelsRes] = await Promise.all([
-                    fetch(`http://localhost:8080/players/user/${userId}`, {
+                    fetch(`http://10.0.40.186:8080/players/user/${userId}`, {
                         credentials: 'include',
                         headers: { Accept: 'application/json' },
                     }),
-                    fetch(`http://localhost:8080/players/user/${userId}/gameObjects`, {
+                    fetch(`http://10.0.40.186:8080/players/user/${userId}/gameObjects`, {
                         credentials: 'include',
                         headers: { Accept: 'application/json' },
                     }),
-                    fetch(`http://localhost:8080/players/user/${userId}/levels`, {
+                    fetch(`http://10.0.40.186:8080/players/user/${userId}/levels`, {
                         credentials: 'include',
                         headers: { Accept: 'application/json' },
                     }),
@@ -95,7 +95,7 @@ const Shop = () => {
         const ectsUpdated = localStorage.getItem('ectsUpdated');
         if (ectsUpdated === 'true' && userId !== null) {
             localStorage.removeItem('ectsUpdated');
-            fetch(`http://localhost:8080/players/user/${userId}`, {
+            fetch(`http://10.0.40.186:8080/players/user/${userId}`, {
                 credentials: 'include',
                 headers: { Accept: 'application/json' },
             })
@@ -138,7 +138,7 @@ const Shop = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8080/players/user/${userId}/purchase`, {
+            const response = await fetch(`http://10.0.40.186:8080/players/user/${userId}/purchase`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -154,15 +154,15 @@ const Shop = () => {
             if (!response.ok) throw new Error('Purchase failed');
 
             const [updatedPlayer, updatedGameObjects, updatedLevels] = await Promise.all([
-                fetch(`http://localhost:8080/players/user/${userId}`, {
+                fetch(`http://10.0.40.186:8080/players/user/${userId}`, {
                     credentials: 'include',
                     headers: { Accept: 'application/json' },
                 }).then(res => res.json()),
-                fetch(`http://localhost:8080/players/user/${userId}/gameObjects`, {
+                fetch(`http://10.0.40.186:8080/players/user/${userId}/gameObjects`, {
                     credentials: 'include',
                     headers: { Accept: 'application/json' },
                 }).then(res => res.json()),
-                fetch(`http://localhost:8080/players/user/${userId}/levels`, {
+                fetch(`http://10.0.40.186:8080/players/user/${userId}/levels`, {
                     credentials: 'include',
                     headers: { Accept: 'application/json' },
                 }).then(res => res.json()),
@@ -182,7 +182,7 @@ const Shop = () => {
         if (!userId) return;
 
         try {
-            const response = await fetch(`http://localhost:8080/players/user/${userId}/buyEcts`, {
+            const response = await fetch(`http://10.0.40.186:8080/players/user/${userId}/buyEcts`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

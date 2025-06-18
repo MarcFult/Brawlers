@@ -82,10 +82,13 @@
 </head>
 <body>
 <h1>DLC LOBBY</h1>
+<h2 id="playerName" style="text-align:center;color:#ff6600;margin:-20px 0 30px"></h2>
+<h2 id="playerUserId" style="text-align:center;color:#ff6600;margin:-20px 0 30px"></h2>
 
 <div class="section">
     <h3>Neue Lobby erstellen</h3>
     <input type="number" id="maxPlayers" placeholder="Max Spieler" value="4" min="2" max="10" />
+    <button id="backBtn" onclick="returnToPlayerPage()">⟵ Zurück</button>
 
     <select id="mapSelect" >
         <option value="test_map">Sandbox</option>
@@ -355,6 +358,29 @@
         socket.emit("getLobbies", (lobbies) => {
         });
     }
+
+         const raw = sessionStorage.getItem("dlc-player");
+        if (!raw) {
+            alert("Spieler-Daten fehlen – bitte neu einloggen");
+            window.location.href = "/login";
+         }
+        const player = JSON.parse(raw); 
+        
+    document.getElementById("playerName").textContent = player.name;
+    document.getElementById("playerUserId").textContent = player.userId;
+
+      function returnToPlayerPage () {
+      if (socket && socket.connected) socket.disconnect();
+
+      /* we already have the player object from sessionStorage */
+      const q = new URLSearchParams({
+        uid  : player.userId,
+        mail : player.email ?? ""      // add more fields if you like
+      });
+
+      window.location.href = `/#/player?${q.toString()}`;
+  }
+
 
 </script>
 

@@ -78,26 +78,90 @@
         .copy-btn:hover {
             background: #555;
         }
+        option:disabled {
+            color: #666;
+        }
     </style>
 </head>
 <body>
 <h1>DLC LOBBY</h1>
 <h2 id="playerName" style="text-align:center;color:#ff6600;margin:-20px 0 30px"></h2>
-<h2 id="playerUserId" style="text-align:center;color:#ff6600;margin:-20px 0 30px"></h2>
+<script>
+    // User-ID aus sessionStorage holen (wird von PlayerPage.tsx gesetzt)
+    const userId = sessionStorage.getItem('userId');
+    console.log('Empfangene User-ID:', userId); // Nur zu Debug-Zwecken
+
+    // Liste der verfügbaren Maps mit ihren Anzeigenamen
+    const availableMaps = [
+        { value: 'test_map', label: 'Sandbox (immer verfügbar)' },
+        { value: 'first_map', label: 'first_map' },
+        { value: 'second_map', label: 'second_map' },
+        { value: 'third_map', label: 'third_map' },
+        { value: 'ah', label: 'Altes_Hallenbad' },
+        { value: 'fourth_map', label: 'fourth_map' }
+    ];
+
+    // Funktion zum Laden der freigeschalteten GameObjects
+    async function loadUnlockedGameObjects() {
+        try {
+            const response = await fetch(`http://10.0.40.186:8080/players/user/${userId}/gameObjects`);
+            let gameObjects = [];
+
+            if (response.ok) {
+                gameObjects = await response.json();
+            }
+
+            // Immer freigeschaltete Maps ergänzen
+            const alwaysUnlocked = ['test_map', 'first_map', 'second_map'];
+            const unlockedSet = new Set([...gameObjects, ...alwaysUnlocked]);
+
+            updateMapSelect(Array.from(unlockedSet));
+        } catch (error) {
+            console.error('Fehler beim Laden der GameObjects:', error);
+
+            // Fallback: Nur die immer verfügbaren Maps
+            updateMapSelect(['test_map', 'first_map', 'second_map']);
+        }
+    }
+
+
+    // Funktion zum Aktualisieren der Map-Auswahl
+    function updateMapSelect(unlockedItems) {
+        const mapSelect = document.getElementById('mapSelect');
+
+        // Leere das Select-Element
+        mapSelect.innerHTML = '';
+
+        // Füge Optionen hinzu
+        availableMaps.forEach(map => {
+            const option = document.createElement('option');
+            option.value = map.value;
+            option.textContent = map.label;
+
+
+            if (map.value !== 'test_map' && !unlockedItems.includes(map.value)) {
+                option.disabled = true;
+                option.textContent += ' (nicht freigeschaltet)';
+            }
+
+            mapSelect.appendChild(option);
+        });
+    }
+
+    // Beim Laden der Seite die GameObjects laden
+    document.addEventListener('DOMContentLoaded', loadUnlockedGameObjects);
+</script>
 
 <div class="section">
     <h3>Neue Lobby erstellen</h3>
     <input type="number" id="maxPlayers" placeholder="Max Spieler" value="4" min="2" max="10" />
-    <button id="backBtn" onclick="returnToPlayerPage()">⟵ Zurück</button>
+    <button id="backBtn" onclick="returnToPlayerPage()">Zurück</button>
 
     <select id="mapSelect" >
-        <option value="test_map">Sandbox</option>
-        <option value="first_map">first_map</option>
-        <option value="second_map">second_map</option>
-        <option value="third_map">third_map</option>
-        <option value="ah">Altes_Hallenbad</option>
-        <option value="fourth_map">fourth_map</option>
+        <!-- Wird dynamisch befüllt -->
     </select>
+
+
     <button onclick="createLobby()">Lobby erstellen</button>
 
 </div>
@@ -118,8 +182,8 @@
 </div>
 
 <script>
-    const socket = io("http://localhost:3001");
-    //const socket = io("http://10.0.40.186:3001");
+    //const socket = io("http://localhost:3001");
+    const socket = io("http://10.0.40.186:3001");
 
     let currentLobbyId = null;
     let countdownTimer = null;
@@ -156,19 +220,13 @@
 
         console.log("Spielstart für Lobby:", lobbyId);
         console.log("Starte Spiel mit Map GS:", map);
-
-        // Weiterleitung zur Phaser-Game-Seite
-        window.location.href = `/#/game?lobbyId=${lobbyId}&map=${map}`; // /#/game?
-
+        window.location.href = `/#/game?lobbyId=${lobbyId}&map=${map}`;
     });
-
 
     socket.on("startGame", ({ lobbyId, map}) => {
         console.log("Starte Spiel mit Map SG:", map);
         if (lobbyId === currentLobbyId) {
-
-            window.location.href = `/#/game?lobbyId=${lobbyId}&map=${map}`; // /#/game?
-
+            window.location.href = `/#/game?lobbyId=${lobbyId}&map=${map}`;
         }
     });
 
@@ -201,6 +259,11 @@
     function createLobby() {
         const maxPlayers = parseInt(document.getElementById("maxPlayers").value);
         const selectedMap = document.getElementById("mapSelect").value;
+
+        if (document.getElementById("mapSelect").options[document.getElementById("mapSelect").selectedIndex].disabled) {
+            alert("Diese Map ist nicht freigeschaltet!");
+            return;
+        }
 
         socket.emit("createLobby", {
             name: "DLC Match",
@@ -356,6 +419,7 @@
     function requestLobbyList() {
         console.log("Lobbys werden aktualisiert...");
         socket.emit("getLobbies", (lobbies) => {
+            renderLobbies(lobbies);
         });
     }
 
@@ -364,8 +428,8 @@
             alert("Spieler-Daten fehlen – bitte neu einloggen");
             window.location.href = "/login";
          }
-        const player = JSON.parse(raw); 
-        
+        const player = JSON.parse(raw);
+
     document.getElementById("playerName").textContent = player.name;
     document.getElementById("playerUserId").textContent = player.userId;
 

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PlayerService {
@@ -63,13 +64,33 @@ public class PlayerService {
         Player player = new Player();
         player.setUserId(userId);
         player.setName(name);
-        player.setEcts(50);
+        player.setEcts(5);
         player.getGameObjects().add("caretaker");
         player.getGameObjects().add("pepe");
         player.getGameObjects().add("alien");
         // levels defaults to empty
         return repo.save(player);
     }
+
+    @Transactional
+    public Player buyEcts(Long userId, int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+
+        Player player = getByUserId(userId);
+        player.setEcts(player.getEcts() + amount);
+        return repo.save(player);
+    }
+
+    public Player update(Long userId, String name){
+        Player player = getByUserId(userId);
+        player.setName(name);
+
+        return repo.save(player);
+    }
+
+
 
     @Transactional
     public Player addEcts(Long userId, int amount) {

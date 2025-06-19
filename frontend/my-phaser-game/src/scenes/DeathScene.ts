@@ -1,6 +1,6 @@
 import { Socket } from "socket.io-client";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = "http://10.0.40.186:8080";
 
 export default class DeathScene extends Phaser.Scene {
   private socket!: Socket; // Socket.IO Verbindung
@@ -21,7 +21,7 @@ export default class DeathScene extends Phaser.Scene {
     if (raw) {
       const playerData = JSON.parse(raw) as { userId: number; ects: number };
       const userId = playerData.userId;
-      const earnedEcts = 20 + (this.kills || 0) * 5;
+      const earnedEcts = 2 + (this.kills || 0) * 5;
 
       // 1) Show on screen
       this.add

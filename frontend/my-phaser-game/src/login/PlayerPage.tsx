@@ -139,7 +139,7 @@ const handleLobby = () => {
     JSON.stringify({
       userId: player.userId,          // keep it small – just what you need
       name:   player.name,
-      skin:   player.gameObjects[0] ?? "char1",
+      skins: player.gameObjects,
       ects: player.ects,
       exp: player.exp,
       levels: player.levels

@@ -1,15 +1,13 @@
 import React, { useEffect } from 'react';
 import Phaser from 'phaser';
 import BoxScene from '../scenes/BoxScene';
-import SkinSelectScene from "../scenes/SkinSelectScene.ts";
-import DeathScene from "../scenes/DeathScene.ts";
-import WinScene from "../scenes/WinScene.ts";
-
+import SkinSelectScene from '../scenes/SkinSelectScene';
+import DeathScene from '../scenes/DeathScene';
+import WinScene from '../scenes/WinScene';
 
 const Game: React.FC = () => {
   useEffect(() => {
-
-    const config = {
+    const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
       parent: 'phaser-example',
       scale: {
@@ -21,25 +19,36 @@ const Game: React.FC = () => {
       physics: {
         default: 'arcade',
         arcade: {
-          gravity: { x: 0, y: 0 }, // Include both x and y properties
+          gravity: { x: 0, y: 0 },
           debug: false
         }
       },
-      scene: [ SkinSelectScene,BoxScene, DeathScene, WinScene]
+      scene: [ SkinSelectScene, BoxScene, DeathScene, WinScene ]
     };
 
     const game = new Phaser.Game(config);
-    // ^ wir speichern das Game in einer Variable danke chat
+
+    // ── now hand off the player's skins into SkinSelectScene ──
+    const raw = sessionStorage.getItem("dlc-player");
+    if (!raw) {
+      console.warn("No player data; redirecting to login");
+      window.location.href = "/login";
+    } else {
+      try {
+        const playerData = JSON.parse(raw) as { skins: string[] };
+        game.scene.start("SkinSelectScene", { skins: playerData.skins });
+      } catch (e) {
+        console.error("Invalid dlc-player payload", e);
+        window.location.href = "/login";
+      }
+    }
 
     return () => {
       game.destroy(true);
-      // ^ wenn Component weggeht -> zerstöre das Game sauber
     };
-
   }, []);
 
-  return <div id="phaser-example"
-  />;
+  return <div id="phaser-example" />;
 };
 
 export default Game;
